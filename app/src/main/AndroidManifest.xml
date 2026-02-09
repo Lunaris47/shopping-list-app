@@ -10,15 +10,19 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyFirstApp">
 
-        <!-- MainActivity: the launcher activity -->
         <activity
-            android:name=".MainActivity"
-            android:label="Shopping List"
+            android:name="com.example.myfirstapp.ListDetailActivity"
+            android:exported="false" />
+
+        <activity
+            android:name="com.example.myfirstapp.MainActivity"
             android:exported="true">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
 
     </application>

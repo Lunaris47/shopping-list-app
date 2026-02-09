@@ -4,6 +4,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.content.Intent;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -28,8 +29,16 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.title.setText(lists.get(position).getTitle());
+        ShoppingList list = lists.get(position);
+        holder.title.setText(list.getTitle());
+
+        holder.itemView.setOnClickListener(v -> {
+            Intent intent = new Intent(v.getContext(), ListDetailActivity.class);
+            intent.putExtra("list_title", list.getTitle());
+            v.getContext().startActivity(intent);
+        });
     }
+
 
     @Override
     public int getItemCount() {
