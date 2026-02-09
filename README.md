@@ -1,4 +1,7 @@
 # CISC-4900-Project
+
+# Note -- All the files for this project are contained within the "master" branch, not the "main".
+
 # Shopping List App
 
 An Android application that allows users to create, manage, and organize shopping lists, similar in concept to Google Keep.
