@@ -2,54 +2,41 @@ package com.example.myfirstapp;
 
 import android.os.Bundle;
 import android.widget.Button;
-import android.widget.TextView;
+import android.widget.EditText;
+
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.constraintlayout.widget.ConstraintSet;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
+
+    private final List<String> shoppingItems = new ArrayList<>();
+    private ItemAdapter adapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
 
-        // Create layout programmatically
-        ConstraintLayout layout = new ConstraintLayout(this);
-        layout.setId(ConstraintLayout.generateViewId());
+        EditText inputText = findViewById(R.id.inputText);
+        Button addButton = findViewById(R.id.addButton);
+        RecyclerView recyclerView = findViewById(R.id.recyclerView);
 
-        // Create TextView
-        TextView textView = new TextView(this);
-        textView.setId(TextView.generateViewId());
-        textView.setText("Hello, Android!");
-        textView.setTextSize(24f);
+        // Setup RecyclerView
+        adapter = new ItemAdapter(shoppingItems);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(adapter);
 
-        // Create Button
-        Button button = new Button(this);
-        button.setId(Button.generateViewId());
-        button.setText("Click me!");
-
-        // Change text when button is clicked
-        button.setOnClickListener(v -> textView.setText("Button clicked!"));
-
-        // Add views to layout
-        layout.addView(textView);
-        layout.addView(button);
-
-        // Position views using ConstraintSet
-        ConstraintSet set = new ConstraintSet();
-        set.clone(layout);
-
-        // TextView constraints
-        set.connect(textView.getId(), ConstraintSet.TOP, layout.getId(), ConstraintSet.TOP, 200);
-        set.connect(textView.getId(), ConstraintSet.START, layout.getId(), ConstraintSet.START, 50);
-        set.connect(textView.getId(), ConstraintSet.END, layout.getId(), ConstraintSet.END, 50);
-
-        // Button constraints
-        set.connect(button.getId(), ConstraintSet.TOP, textView.getId(), ConstraintSet.BOTTOM, 50);
-        set.connect(button.getId(), ConstraintSet.START, layout.getId(), ConstraintSet.START, 50);
-        set.connect(button.getId(), ConstraintSet.END, layout.getId(), ConstraintSet.END, 50);
-
-        set.applyTo(layout);
-
-        setContentView(layout);
+        addButton.setOnClickListener(v -> {
+            String item = inputText.getText().toString().trim();
+            if (!item.isEmpty()) {
+                shoppingItems.add(item);
+                adapter.notifyItemInserted(shoppingItems.size() - 1);
+                inputText.setText("");
+            }
+        });
     }
 }
