@@ -5,7 +5,7 @@ import android.widget.Button;
 import android.widget.EditText;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
@@ -13,30 +13,32 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private final List<String> shoppingItems = new ArrayList<>();
-    private ItemAdapter adapter;
+    private final List<ShoppingList> shoppingLists = new ArrayList<>();
+    private ListAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Views (keep for now, we’ll reuse later)
         EditText inputText = findViewById(R.id.inputText);
         Button addButton = findViewById(R.id.addButton);
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
 
-        // Setup RecyclerView
-        adapter = new ItemAdapter(shoppingItems);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        // Sample lists to display as cards
+        shoppingLists.add(new ShoppingList("Groceries"));
+        shoppingLists.add(new ShoppingList("Homework"));
+        shoppingLists.add(new ShoppingList("Chores"));
+        shoppingLists.add(new ShoppingList("Packing"));
+
+        // Setup RecyclerView as a grid (2 columns like Google Keep)
+        adapter = new ListAdapter(shoppingLists);
+        recyclerView.setLayoutManager(new GridLayoutManager(this, 2));
         recyclerView.setAdapter(adapter);
 
-        addButton.setOnClickListener(v -> {
-            String item = inputText.getText().toString().trim();
-            if (!item.isEmpty()) {
-                shoppingItems.add(item);
-                adapter.notifyItemInserted(shoppingItems.size() - 1);
-                inputText.setText("");
-            }
-        });
+        // Temporarily disable old add-item behavior
+        addButton.setEnabled(false);
+        inputText.setEnabled(false);
     }
 }
