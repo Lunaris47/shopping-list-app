@@ -21,7 +21,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        getWindow().setDecorFitsSystemWindows(true);
+
         setContentView(R.layout.activity_main);
+        setSupportActionBar(findViewById(R.id.toolbar));
 
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
         FloatingActionButton fab = findViewById(R.id.fabAddList);
