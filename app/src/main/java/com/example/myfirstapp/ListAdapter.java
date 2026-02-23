@@ -34,11 +34,10 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
 
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(v.getContext(), ListDetailActivity.class);
-            intent.putExtra("list_title", list.getTitle());
+            intent.putExtra("list_index", position);
             v.getContext().startActivity(intent);
         });
     }
-
 
     @Override
     public int getItemCount() {

@@ -20,4 +20,12 @@ public class ShoppingList {
     public List<String> getItems() {
         return items;
     }
+
+    public void addItem(String item) {
+        items.add(item);
+    }
+
+    public void removeItem(int index) {
+        items.remove(index);
+    }
 }
