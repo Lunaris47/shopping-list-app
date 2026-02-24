@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,8 +22,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        getWindow().setDecorFitsSystemWindows(true);
 
         setContentView(R.layout.activity_main);
         setSupportActionBar(findViewById(R.id.toolbar));
@@ -38,11 +37,34 @@ public class MainActivity extends AppCompatActivity {
             shoppingLists.add(new ShoppingList("Packing"));
         }
 
-        adapter = new ListAdapter(shoppingLists);
+        adapter = new ListAdapter(shoppingLists, position -> {
+
+            new AlertDialog.Builder(MainActivity.this)
+                    .setTitle("Delete List")
+                    .setMessage("Are you sure you want to delete this list?")
+                    .setPositiveButton("Delete", (dialog, which) -> {
+
+                        ShoppingList deletedList = shoppingLists.get(position);
+                        shoppingLists.remove(position);
+                        adapter.notifyItemRemoved(position);
+
+                        Snackbar.make(recyclerView, "List deleted", Snackbar.LENGTH_LONG)
+                                .setAction("UNDO", v -> {
+                                    shoppingLists.add(position, deletedList);
+                                    adapter.notifyItemInserted(position);
+                                })
+                                .show();
+
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+
+        });
+
         recyclerView.setLayoutManager(new GridLayoutManager(this, 2));
         recyclerView.setAdapter(adapter);
 
-        // FAB click → create new list
+// FAB click → create new list
         fab.setOnClickListener(v -> {
             EditText input = new EditText(this);
             input.setHint("List name");
