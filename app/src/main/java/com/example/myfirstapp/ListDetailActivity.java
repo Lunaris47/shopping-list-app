@@ -8,6 +8,8 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import androidx.annotation.NonNull;
+import androidx.core.content.res.ResourcesCompat;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.ItemTouchHelper;
@@ -27,7 +29,9 @@ public class ListDetailActivity extends AppCompatActivity {
         setContentView(R.layout.activity_list_details);
 
         setSupportActionBar(findViewById(R.id.toolbar));
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
 
         int index = getIntent().getIntExtra("list_index", -1);
         shoppingList = MainActivity.shoppingLists.get(index);
@@ -47,6 +51,8 @@ public class ListDetailActivity extends AppCompatActivity {
                 shoppingList.addItem(item);
                 adapter.notifyItemInserted(shoppingList.getItems().size() - 1);
                 input.setText("");
+
+                MainActivity.saveData(ListDetailActivity.this);
             }
         });
 
@@ -56,21 +62,23 @@ public class ListDetailActivity extends AppCompatActivity {
                         ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
 
                     @Override
-                    public boolean onMove(RecyclerView recyclerView,
-                                          RecyclerView.ViewHolder viewHolder,
-                                          RecyclerView.ViewHolder target) {
+                    public boolean onMove(@NonNull RecyclerView recyclerView,
+                                          @NonNull RecyclerView.ViewHolder viewHolder,
+                                          @NonNull RecyclerView.ViewHolder target) {
                         return false;
                     }
 
                     @Override
-                    public void onSwiped(RecyclerView.ViewHolder viewHolder,
+                    public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder,
                                          int direction) {
 
-                        int position = viewHolder.getAdapterPosition();
+                        int position = viewHolder.getBindingAdapterPosition();
                         String deletedItem = shoppingList.getItems().get(position);
 
                         shoppingList.getItems().remove(position);
                         adapter.notifyItemRemoved(position);
+
+                        MainActivity.saveData(ListDetailActivity.this);
 
                         Snackbar.make(recyclerView,
                                         "Item deleted",
@@ -78,6 +86,8 @@ public class ListDetailActivity extends AppCompatActivity {
                                 .setAction("UNDO", v -> {
                                     shoppingList.getItems().add(position, deletedItem);
                                     adapter.notifyItemInserted(position);
+
+                                    MainActivity.saveData(ListDetailActivity.this);
                                 })
                                 .show();
                     }
@@ -110,7 +120,11 @@ public class ListDetailActivity extends AppCompatActivity {
                                     paint);
                         }
 
-                        Drawable icon = getResources().getDrawable(R.drawable.ic_delete);
+                        Drawable icon = ResourcesCompat.getDrawable(
+                                getResources(),
+                                R.drawable.ic_delete,
+                                null
+                        );
 
                         int iconMargin = (itemView.getHeight() - icon.getIntrinsicHeight()) / 2;
                         int iconTop = itemView.getTop() + iconMargin;
