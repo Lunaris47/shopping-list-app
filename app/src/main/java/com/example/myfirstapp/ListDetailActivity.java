@@ -8,10 +8,10 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import androidx.annotation.NonNull;
-import androidx.core.content.res.ResourcesCompat;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -40,26 +40,32 @@ public class ListDetailActivity extends AppCompatActivity {
         Button addButton = findViewById(R.id.addItemButton);
         RecyclerView recyclerView = findViewById(R.id.detailRecyclerView);
 
-        adapter = new ItemAdapter(shoppingList.getItems());
+        // Adapter with toggle callback
+        adapter = new ItemAdapter(
+                shoppingList.getItems(),
+                () -> MainActivity.saveData(ListDetailActivity.this)
+        );
+
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
 
         // Add item
         addButton.setOnClickListener(v -> {
-            String item = input.getText().toString().trim();
-            if (!item.isEmpty()) {
-                shoppingList.addItem(item);
+            String text = input.getText().toString().trim();
+            if (!text.isEmpty()) {
+                shoppingList.addItem(text);
                 adapter.notifyItemInserted(shoppingList.getItems().size() - 1);
                 input.setText("");
-
                 MainActivity.saveData(ListDetailActivity.this);
             }
         });
 
-        // Swipe helper
+        // Swipe to delete
         ItemTouchHelper helper = new ItemTouchHelper(
-                new ItemTouchHelper.SimpleCallback(0,
-                        ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+                new ItemTouchHelper.SimpleCallback(
+                        0,
+                        ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT
+                ) {
 
                     @Override
                     public boolean onMove(@NonNull RecyclerView recyclerView,
@@ -73,29 +79,31 @@ public class ListDetailActivity extends AppCompatActivity {
                                          int direction) {
 
                         int position = viewHolder.getBindingAdapterPosition();
-                        String deletedItem = shoppingList.getItems().get(position);
+                        if (position == RecyclerView.NO_POSITION) return;
+
+                        ShoppingItem deletedItem =
+                                shoppingList.getItems().get(position);
 
                         shoppingList.getItems().remove(position);
                         adapter.notifyItemRemoved(position);
-
                         MainActivity.saveData(ListDetailActivity.this);
 
                         Snackbar.make(recyclerView,
                                         "Item deleted",
                                         Snackbar.LENGTH_LONG)
                                 .setAction("UNDO", v -> {
-                                    shoppingList.getItems().add(position, deletedItem);
+                                    shoppingList.getItems()
+                                            .add(position, deletedItem);
                                     adapter.notifyItemInserted(position);
-
                                     MainActivity.saveData(ListDetailActivity.this);
                                 })
                                 .show();
                     }
 
                     @Override
-                    public void onChildDraw(Canvas c,
-                                            RecyclerView recyclerView,
-                                            RecyclerView.ViewHolder viewHolder,
+                    public void onChildDraw(@NonNull Canvas c,
+                                            @NonNull RecyclerView recyclerView,
+                                            @NonNull RecyclerView.ViewHolder viewHolder,
                                             float dX,
                                             float dY,
                                             int actionState,
@@ -107,17 +115,21 @@ public class ListDetailActivity extends AppCompatActivity {
                         paint.setColor(Color.RED);
 
                         if (dX > 0) {
-                            c.drawRect(itemView.getLeft(),
+                            c.drawRect(
+                                    itemView.getLeft(),
                                     itemView.getTop(),
                                     itemView.getLeft() + dX,
                                     itemView.getBottom(),
-                                    paint);
+                                    paint
+                            );
                         } else {
-                            c.drawRect(itemView.getRight() + dX,
+                            c.drawRect(
+                                    itemView.getRight() + dX,
                                     itemView.getTop(),
                                     itemView.getRight(),
                                     itemView.getBottom(),
-                                    paint);
+                                    paint
+                            );
                         }
 
                         Drawable icon = ResourcesCompat.getDrawable(
@@ -126,24 +138,47 @@ public class ListDetailActivity extends AppCompatActivity {
                                 null
                         );
 
-                        int iconMargin = (itemView.getHeight() - icon.getIntrinsicHeight()) / 2;
-                        int iconTop = itemView.getTop() + iconMargin;
-                        int iconBottom = iconTop + icon.getIntrinsicHeight();
+                        if (icon != null) {
+                            int iconMargin =
+                                    (itemView.getHeight()
+                                            - icon.getIntrinsicHeight()) / 2;
 
-                        if (dX > 0) {
-                            int iconLeft = itemView.getLeft() + iconMargin;
-                            int iconRight = iconLeft + icon.getIntrinsicWidth();
-                            icon.setBounds(iconLeft, iconTop, iconRight, iconBottom);
-                        } else {
-                            int iconRight = itemView.getRight() - iconMargin;
-                            int iconLeft = iconRight - icon.getIntrinsicWidth();
-                            icon.setBounds(iconLeft, iconTop, iconRight, iconBottom);
+                            int iconTop = itemView.getTop() + iconMargin;
+                            int iconBottom =
+                                    iconTop + icon.getIntrinsicHeight();
+
+                            if (dX > 0) {
+                                int iconLeft =
+                                        itemView.getLeft() + iconMargin;
+                                int iconRight =
+                                        iconLeft + icon.getIntrinsicWidth();
+                                icon.setBounds(iconLeft,
+                                        iconTop,
+                                        iconRight,
+                                        iconBottom);
+                            } else {
+                                int iconRight =
+                                        itemView.getRight() - iconMargin;
+                                int iconLeft =
+                                        iconRight - icon.getIntrinsicWidth();
+                                icon.setBounds(iconLeft,
+                                        iconTop,
+                                        iconRight,
+                                        iconBottom);
+                            }
+
+                            icon.draw(c);
                         }
 
-                        icon.draw(c);
-
-                        super.onChildDraw(c, recyclerView, viewHolder,
-                                dX, dY, actionState, isCurrentlyActive);
+                        super.onChildDraw(
+                                c,
+                                recyclerView,
+                                viewHolder,
+                                dX,
+                                dY,
+                                actionState,
+                                isCurrentlyActive
+                        );
                     }
                 });
 

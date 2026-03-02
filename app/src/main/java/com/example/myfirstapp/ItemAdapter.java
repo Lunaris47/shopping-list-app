@@ -1,5 +1,6 @@
 package com.example.myfirstapp;
 
+import android.graphics.Paint;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,10 +13,12 @@ import java.util.List;
 
 public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder> {
 
-    private final List<String> items;
+    private final List<ShoppingItem> items;
+    private final Runnable onItemChanged;
 
-    public ItemAdapter(List<String> items) {
+    public ItemAdapter(List<ShoppingItem> items, Runnable onItemChanged) {
         this.items = items;
+        this.onItemChanged = onItemChanged;
     }
 
     @NonNull
@@ -28,7 +31,37 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
 
     @Override
     public void onBindViewHolder(@NonNull ItemViewHolder holder, int position) {
-        holder.itemText.setText(items.get(position));
+        ShoppingItem item = items.get(position);
+
+        holder.itemText.setText(item.getName());
+
+        // Apply or remove strikethrough
+        if (item.isChecked()) {
+            holder.itemText.setPaintFlags(
+                    holder.itemText.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG
+            );
+        } else {
+            holder.itemText.setPaintFlags(
+                    holder.itemText.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG)
+            );
+        }
+
+        holder.itemView.setOnClickListener(v -> {
+
+            // Toggle checked state
+            item.toggleChecked();
+
+            // Reorder so checked go to bottom
+            items.sort((a, b) -> {
+                if (a.isChecked() == b.isChecked()) return 0;
+                return a.isChecked() ? 1 : -1;
+            });
+
+            notifyDataSetChanged();
+
+            // Trigger persistence save
+            onItemChanged.run();
+        });
     }
 
     @Override
@@ -36,9 +69,8 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
         return items.size();
     }
 
-    // Private static ViewHolder to avoid warnings
-    public static class ItemViewHolder extends RecyclerView.ViewHolder {
-        private final TextView itemText;
+    static class ItemViewHolder extends RecyclerView.ViewHolder {
+        TextView itemText;
 
         ItemViewHolder(@NonNull View itemView) {
             super(itemView);
