@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.CheckBox;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -35,6 +36,9 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
 
         holder.itemText.setText(item.getName());
 
+        holder.itemCheckbox.setOnCheckedChangeListener(null);
+        holder.itemCheckbox.setChecked(item.isChecked());
+
         // Apply or remove strikethrough
         if (item.isChecked()) {
             holder.itemText.setPaintFlags(
@@ -46,22 +50,18 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
             );
         }
 
-        holder.itemView.setOnClickListener(v -> {
+        holder.itemCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
 
-            // Toggle checked state
-            item.toggleChecked();
+            item.setChecked(isChecked);
 
-            // Reorder so checked go to bottom
-            items.sort((a, b) -> {
-                if (a.isChecked() == b.isChecked()) return 0;
-                return a.isChecked() ? 1 : -1;
-            });
+            notifyItemChanged(position);
 
-            notifyDataSetChanged();
-
-            // Trigger persistence save
+            // Save changes
             onItemChanged.run();
         });
+
+        // Allow tapping anywhere on the card
+        holder.itemView.setOnClickListener(v -> holder.itemCheckbox.toggle());
     }
 
     @Override
@@ -71,10 +71,12 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
 
     static class ItemViewHolder extends RecyclerView.ViewHolder {
         TextView itemText;
+        CheckBox itemCheckbox;
 
         ItemViewHolder(@NonNull View itemView) {
             super(itemView);
             itemText = itemView.findViewById(R.id.itemText);
+            itemCheckbox = itemView.findViewById(R.id.itemCheckbox);
         }
     }
 }
