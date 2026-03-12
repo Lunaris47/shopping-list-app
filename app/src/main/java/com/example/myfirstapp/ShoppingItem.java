@@ -22,6 +22,8 @@ public class ShoppingItem {
         this.checked = checked;
     }
 
+    public void setName(String name) { this.name = name; }
+
     public void toggleChecked() {
         this.checked = !this.checked;
     }

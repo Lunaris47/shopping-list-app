@@ -6,6 +6,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.CheckBox;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.widget.EditText;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -39,7 +42,6 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
         holder.itemCheckbox.setOnCheckedChangeListener(null);
         holder.itemCheckbox.setChecked(item.isChecked());
 
-        // Apply or remove strikethrough
         if (item.isChecked()) {
             holder.itemText.setPaintFlags(
                     holder.itemText.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG
@@ -51,17 +53,41 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
         }
 
         holder.itemCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-
             item.setChecked(isChecked);
-
             notifyItemChanged(position);
-
-            // Save changes
             onItemChanged.run();
         });
 
-        // Allow tapping anywhere on the card
+        // Tap anywhere on card toggles checkbox
         holder.itemView.setOnClickListener(v -> holder.itemCheckbox.toggle());
+
+        // LONG PRESS → EDIT ITEM
+        holder.itemView.setOnLongClickListener(v -> {
+
+            Context context = v.getContext();
+
+            EditText input = new EditText(context);
+            input.setText(item.getName());
+            input.setSelection(input.getText().length());
+
+            new AlertDialog.Builder(context)
+                    .setTitle("Edit Item")
+                    .setView(input)
+                    .setPositiveButton("Save", (dialog, which) -> {
+
+                        String newName = input.getText().toString().trim();
+
+                        if (!newName.isEmpty()) {
+                            item.setName(newName);
+                            notifyItemChanged(position);
+                            onItemChanged.run();
+                        }
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+
+            return true;
+        });
     }
 
     @Override
