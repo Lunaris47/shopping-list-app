@@ -40,6 +40,32 @@ public class ListDetailActivity extends AppCompatActivity {
         Button addButton = findViewById(R.id.addItemButton);
         RecyclerView recyclerView = findViewById(R.id.detailRecyclerView);
 
+        input.requestFocus();
+
+        input.post(() -> {
+            android.view.inputmethod.InputMethodManager imm =
+                    (android.view.inputmethod.InputMethodManager)
+                            getSystemService(INPUT_METHOD_SERVICE);
+
+            if (imm != null) {
+                imm.showSoftInput(input,
+                        android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+            }
+        });
+
+        input.setOnEditorActionListener((v, actionId, event) -> {
+            String text = input.getText().toString().trim();
+
+            if (!text.isEmpty()) {
+                shoppingList.addItem(text);
+                adapter.notifyItemInserted(shoppingList.getItems().size() - 1);
+                input.setText("");
+                MainActivity.saveData(ListDetailActivity.this);
+            }
+
+            return true;
+        });
+
         // Adapter with toggle callback
         adapter = new ItemAdapter(
                 shoppingList.getItems(),
@@ -48,6 +74,9 @@ public class ListDetailActivity extends AppCompatActivity {
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
+        recyclerView.setItemAnimator(new androidx.recyclerview.widget.DefaultItemAnimator());
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setEdgeEffectFactory(new RecyclerView.EdgeEffectFactory());
 
         // Add item
         addButton.setOnClickListener(v -> {
@@ -56,6 +85,7 @@ public class ListDetailActivity extends AppCompatActivity {
                 shoppingList.addItem(text);
                 adapter.notifyItemInserted(shoppingList.getItems().size() - 1);
                 input.setText("");
+                input.requestFocus();
                 MainActivity.saveData(ListDetailActivity.this);
             }
         });
