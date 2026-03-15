@@ -98,9 +98,8 @@ public class ListDetailActivity extends AppCompatActivity {
 
         } else {
 
-            // Disable editing for archived lists
-            input.setEnabled(false);
-            addButton.setEnabled(false);
+            input.setVisibility(View.GONE);
+            addButton.setVisibility(View.GONE);
         }
 
         // Swipe to delete
