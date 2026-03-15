@@ -82,10 +82,72 @@ public class MainActivity extends AppCompatActivity {
                         // -------------------------
                         if (which == 0) {
 
-                            selectedList.setArchived(true);
+                            if (which == 0) { // Archive
 
-                            refreshVisibleLists();
-                            saveData(this);
+                                new AlertDialog.Builder(MainActivity.this)
+                                        .setTitle("Repeat this list?")
+                                        .setItems(new String[]{"No", "Every Week"}, (dialog2, repeatChoice) -> {
+
+                                            if (repeatChoice == 1) {
+
+                                                String[] days = {
+                                                        "Sunday","Monday","Tuesday",
+                                                        "Wednesday","Thursday","Friday","Saturday"
+                                                };
+
+                                                new AlertDialog.Builder(MainActivity.this)
+                                                        .setTitle("Choose Day")
+                                                        .setItems(days, (dialog3, dayIndex) -> {
+
+                                                            selectedList.setRecurring(true);
+                                                            selectedList.setRecurringDay(days[dayIndex]);
+
+                                                            selectedList.setArchived(true);
+
+                                                            refreshVisibleLists();
+                                                            saveData(this);
+
+                                                            Snackbar.make(recyclerView,
+                                                                            "List archived (weekly)",
+                                                                            Snackbar.LENGTH_LONG)
+                                                                    .setAction("UNDO", v -> {
+
+                                                                        selectedList.setArchived(false);
+                                                                        selectedList.setRecurring(false);
+
+                                                                        refreshVisibleLists();
+                                                                        saveData(this);
+
+                                                                    })
+                                                                    .show();
+
+                                                        })
+                                                        .show();
+
+                                            } else {
+
+                                                selectedList.setArchived(true);
+
+                                                refreshVisibleLists();
+                                                saveData(this);
+
+                                                Snackbar.make(recyclerView,
+                                                                "List archived",
+                                                                Snackbar.LENGTH_LONG)
+                                                        .setAction("UNDO", v -> {
+
+                                                            selectedList.setArchived(false);
+
+                                                            refreshVisibleLists();
+                                                            saveData(this);
+
+                                                        })
+                                                        .show();
+                                            }
+
+                                        })
+                                        .show();
+                            }
 
                             Snackbar.make(recyclerView,
                                             "List archived",
