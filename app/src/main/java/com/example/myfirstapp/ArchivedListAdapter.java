@@ -48,17 +48,16 @@ public class ArchivedListAdapter extends RecyclerView.Adapter<ArchivedListAdapte
                     .setTitle(list.getTitle())
                     .setItems(options, (dialog, which) -> {
 
-                        if (which == 0) { // Restore list
+                        if (which == 0) { // Restore
 
                             list.setArchived(false);
 
+                            // Save updated state
                             MainActivity.saveData(v.getContext());
 
-                            lists.remove(list);
-                            notifyDataSetChanged();
-
-                            // Return to the main screen so it refreshes
-                            ((android.app.Activity) v.getContext()).finish();
+                            // Remove it from archived list UI
+                            lists.remove(position);
+                            notifyItemRemoved(position);
                         }
 
                         else if (which == 1) { // Delete
@@ -66,8 +65,8 @@ public class ArchivedListAdapter extends RecyclerView.Adapter<ArchivedListAdapte
                             MainActivity.shoppingLists.remove(list);
                             MainActivity.saveData(v.getContext());
 
-                            lists.remove(list);
-                            notifyDataSetChanged();
+                            lists.remove(position);
+                            notifyItemRemoved(position);
                         }
 
                     })

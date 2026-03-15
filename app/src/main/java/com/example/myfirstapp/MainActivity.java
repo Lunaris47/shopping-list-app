@@ -179,6 +179,14 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // Reload lists when returning from ArchivedListsActivity
+        refreshVisibleLists();
+    }
+
     // --------------------------------------------------
     // CHECK RECURRING LISTS
     // Automatically restore archived recurring lists
