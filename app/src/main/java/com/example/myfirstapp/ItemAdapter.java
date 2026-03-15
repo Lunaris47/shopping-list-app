@@ -16,7 +16,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.List;
 
 public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder> {
-
     private final List<ShoppingItem> items;
     private final Runnable onItemChanged;
 
@@ -37,10 +36,22 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
     public void onBindViewHolder(@NonNull ItemViewHolder holder, int position) {
         ShoppingItem item = items.get(position);
 
-        holder.itemText.setText(item.getName());
+        // Show divider before the first completed item
+        boolean showDivider = false;
 
+        if (item.isChecked()) {
+
+            if (position == 0) {
+                showDivider = true;
+            } else if (!items.get(position - 1).isChecked()) {
+                showDivider = true;
+            }
+        }
+
+        holder.itemText.setText(item.getName());
         holder.itemCheckbox.setOnCheckedChangeListener(null);
         holder.itemCheckbox.setChecked(item.isChecked());
+        holder.divider.setVisibility(showDivider ? View.VISIBLE : View.GONE);
 
         if (item.isChecked()) {
             holder.itemText.setPaintFlags(
@@ -96,6 +107,7 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
     }
 
     static class ItemViewHolder extends RecyclerView.ViewHolder {
+        View divider;
         TextView itemText;
         CheckBox itemCheckbox;
 
@@ -103,6 +115,7 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
             super(itemView);
             itemText = itemView.findViewById(R.id.itemText);
             itemCheckbox = itemView.findViewById(R.id.itemCheckbox);
+            divider = itemView.findViewById(R.id.completedDivider);
         }
     }
 }
