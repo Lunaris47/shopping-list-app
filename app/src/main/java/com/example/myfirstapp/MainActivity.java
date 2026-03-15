@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.EditText;
+import android.content.Intent;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -21,12 +22,19 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    // 🔹 Master list of ALL lists (including archived ones)
     public static final List<ShoppingList> shoppingLists = new ArrayList<>();
+
+    // 🔹 Lists currently visible on the home screen
     private final List<ShoppingList> visibleLists = new ArrayList<>();
+
     private ListAdapter adapter;
 
+    // 🔹 SharedPreferences keys
     private static final String PREFS_NAME = "shopping_prefs";
     private static final String LIST_KEY = "shopping_lists";
+
+    // 🔹 Gson instance used for saving/loading JSON
     private static final Gson gson = new Gson();
 
     @Override
@@ -39,12 +47,16 @@ public class MainActivity extends AppCompatActivity {
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
         FloatingActionButton fab = findViewById(R.id.fabAddList);
 
-        // 🔹 Load saved data first
+        // 🔹 Load saved lists from SharedPreferences
         loadData();
+
+        // 🔹 Restore recurring lists if today matches their scheduled day
         checkRecurringLists();
+
+        // 🔹 Filter visible lists (exclude archived)
         refreshVisibleLists();
 
-        // 🔹 Add sample lists ONLY if nothing saved yet
+        // 🔹 Add default sample lists only if no saved data exists
         if (shoppingLists.isEmpty()) {
             shoppingLists.add(new ShoppingList("Groceries"));
             shoppingLists.add(new ShoppingList("Homework"));
@@ -53,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
             saveData(this);
         }
 
+        // 🔹 Adapter for displaying visible lists
         adapter = new ListAdapter(visibleLists, position -> {
 
             String[] options = {"Archive List", "Delete List"};
@@ -61,22 +74,39 @@ public class MainActivity extends AppCompatActivity {
                     .setTitle("List Options")
                     .setItems(options, (dialog, which) -> {
 
-                        if (which == 0) { // Archive
+                        // Get the list selected from visible lists
+                        ShoppingList selectedList = visibleLists.get(position);
 
-                            shoppingLists.get(position).setArchived(true);
+                        // -------------------------
+                        // ARCHIVE LIST
+                        // -------------------------
+                        if (which == 0) {
+
+                            selectedList.setArchived(true);
+
                             refreshVisibleLists();
                             saveData(this);
 
                             Snackbar.make(recyclerView,
                                             "List archived",
                                             Snackbar.LENGTH_LONG)
+                                    .setAction("UNDO", v -> {
+
+                                        selectedList.setArchived(false);
+                                        refreshVisibleLists();
+                                        saveData(this);
+
+                                    })
                                     .show();
+                        }
 
-                        } else if (which == 1) { // Delete
+                        // -------------------------
+                        // DELETE LIST
+                        // -------------------------
+                        else if (which == 1) {
 
-                            ShoppingList deletedList = shoppingLists.get(position);
+                            shoppingLists.remove(selectedList);
 
-                            shoppingLists.remove(position);
                             refreshVisibleLists();
                             saveData(this);
 
@@ -84,9 +114,11 @@ public class MainActivity extends AppCompatActivity {
                                             "List deleted",
                                             Snackbar.LENGTH_LONG)
                                     .setAction("UNDO", v -> {
-                                        shoppingLists.add(position, deletedList);
+
+                                        shoppingLists.add(selectedList);
                                         refreshVisibleLists();
                                         saveData(this);
+
                                     })
                                     .show();
                         }
@@ -97,11 +129,15 @@ public class MainActivity extends AppCompatActivity {
 
         });
 
+        // 🔹 Grid layout (2 list cards per row)
         recyclerView.setLayoutManager(new GridLayoutManager(this, 2));
         recyclerView.setAdapter(adapter);
 
-        // 🔹 FAB → create new list
+        // --------------------------------------------------
+        // FAB → CREATE NEW LIST
+        // --------------------------------------------------
         fab.setOnClickListener(v -> {
+
             EditText input = new EditText(this);
             input.setHint("List name");
 
@@ -109,18 +145,38 @@ public class MainActivity extends AppCompatActivity {
                     .setTitle("Create New List")
                     .setView(input)
                     .setPositiveButton("Create", (dialog, which) -> {
+
                         String name = input.getText().toString().trim();
+
                         if (!name.isEmpty()) {
+
                             shoppingLists.add(new ShoppingList(name));
-                            refreshVisibleLists();;
+
+                            refreshVisibleLists();
                             saveData(this);
                         }
                     })
                     .setNegativeButton("Cancel", null)
                     .show();
         });
+
+        // --------------------------------------------------
+        // OPEN ARCHIVED LISTS SCREEN
+        // Long press toolbar to view archived lists
+        // --------------------------------------------------
+        findViewById(R.id.toolbar).setOnLongClickListener(v -> {
+
+            startActivity(new Intent(this, ArchivedListsActivity.class));
+
+            return true;
+        });
     }
 
+    // --------------------------------------------------
+    // CHECK RECURRING LISTS
+    // Automatically restore archived recurring lists
+    // when their scheduled day arrives
+    // --------------------------------------------------
     private void checkRecurringLists() {
 
         String todayDay =
@@ -141,16 +197,23 @@ public class MainActivity extends AppCompatActivity {
                 list.setArchived(false);
                 list.resetItems();
                 list.setLastRestoredDate(todayDate);
+
+                refreshVisibleLists();
+                saveData(this); // ensure recurring restoration persists
             }
         }
     }
 
-    // 🔹 Load data from SharedPreferences
+    // --------------------------------------------------
+    // LOAD LISTS FROM SHARED PREFERENCES
+    // --------------------------------------------------
     private void loadData() {
+
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         String json = prefs.getString(LIST_KEY, null);
 
         if (json != null) {
+
             Type type = new TypeToken<List<ShoppingList>>() {}.getType();
             List<ShoppingList> savedLists = gson.fromJson(json, type);
 
@@ -159,17 +222,24 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // 🔹 Save data to SharedPreferences
+    // --------------------------------------------------
+    // SAVE LISTS TO SHARED PREFERENCES
+    // --------------------------------------------------
     public static void saveData(Context context) {
+
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
 
         String json = gson.toJson(shoppingLists);
+
         editor.putString(LIST_KEY, json);
         editor.apply();
     }
 
-    // Keeps adapter synced with only ACTIVE lists.
+    // --------------------------------------------------
+    // FILTER VISIBLE LISTS
+    // Only show non-archived lists on the home screen
+    // --------------------------------------------------
     private void refreshVisibleLists() {
 
         visibleLists.clear();

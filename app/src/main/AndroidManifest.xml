@@ -9,22 +9,21 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MyFirstApp">
-
         <activity
-            android:name="com.example.myfirstapp.ListDetailActivity"
+            android:name=".ArchivedListsActivity"
             android:exported="false" />
-
         <activity
-            android:name="com.example.myfirstapp.MainActivity"
+            android:name=".ListDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".MainActivity"
             android:exported="true">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
         </activity>
-
     </application>
 
 </manifest>
