@@ -62,17 +62,46 @@ public class ArchivedListAdapter extends RecyclerView.Adapter<ArchivedListAdapte
 
                         else if (which == 1) { // Delete
 
-                            MainActivity.shoppingLists.remove(list);
-                            MainActivity.saveData(v.getContext());
+                            ShoppingList deletedList = list;
 
+                            MainActivity.shoppingLists.remove(list);
                             lists.remove(position);
                             notifyItemRemoved(position);
+
+                            MainActivity.saveData(v.getContext());
+
+                            com.google.android.material.snackbar.Snackbar
+                                    .make(v, "List deleted", com.google.android.material.snackbar.Snackbar.LENGTH_LONG)
+                                    .setAction("UNDO", undo -> {
+
+                                        MainActivity.shoppingLists.add(deletedList);
+                                        lists.add(position, deletedList);
+                                        notifyItemInserted(position);
+
+                                        MainActivity.saveData(v.getContext());
+
+                                    })
+                                    .show();
                         }
 
                     })
                     .show();
 
             return true;
+        });
+
+        holder.itemView.setOnClickListener(v -> {
+
+            android.content.Intent intent =
+                    new android.content.Intent(v.getContext(), ListDetailActivity.class);
+
+            intent.putExtra("list_index",
+                    MainActivity.shoppingLists.indexOf(list));
+
+            // Tell ListDetailActivity this is archived
+            intent.putExtra("archived_view", true);
+
+            v.getContext().startActivity(intent);
         });
     }
 

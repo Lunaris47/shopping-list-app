@@ -140,24 +140,43 @@ public class MainActivity extends AppCompatActivity {
 
             EditText input = new EditText(this);
             input.setHint("List name");
+            input.setSingleLine(true);
 
-            new AlertDialog.Builder(this)
+            AlertDialog dialog = new AlertDialog.Builder(this)
                     .setTitle("Create New List")
                     .setView(input)
-                    .setPositiveButton("Create", (dialog, which) -> {
+                    .setPositiveButton("Create", (d, which) -> {
 
                         String name = input.getText().toString().trim();
 
                         if (!name.isEmpty()) {
-
                             shoppingLists.add(new ShoppingList(name));
-
                             refreshVisibleLists();
                             saveData(this);
                         }
+
                     })
                     .setNegativeButton("Cancel", null)
-                    .show();
+                    .create();
+
+            dialog.show();
+
+            input.setOnEditorActionListener((textView, actionId, event) -> {
+
+                String name = input.getText().toString().trim();
+
+                if (!name.isEmpty()) {
+
+                    shoppingLists.add(new ShoppingList(name));
+                    refreshVisibleLists();
+                    saveData(this);
+
+                    dialog.dismiss();
+                }
+
+                return true;
+            });
+
         });
     }
 

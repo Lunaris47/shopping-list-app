@@ -25,6 +25,10 @@ public class ListDetailActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        boolean archivedView =
+                getIntent().getBooleanExtra("archived_view", false);
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list_details);
 
@@ -79,16 +83,25 @@ public class ListDetailActivity extends AppCompatActivity {
         recyclerView.setEdgeEffectFactory(new RecyclerView.EdgeEffectFactory());
 
         // Add item
-        addButton.setOnClickListener(v -> {
-            String text = input.getText().toString().trim();
-            if (!text.isEmpty()) {
-                shoppingList.addItem(text);
-                adapter.notifyItemInserted(shoppingList.getItems().size() - 1);
-                input.setText("");
-                input.requestFocus();
-                MainActivity.saveData(ListDetailActivity.this);
-            }
-        });
+        if (!archivedView) {
+
+            addButton.setOnClickListener(v -> {
+                String text = input.getText().toString().trim();
+                if (!text.isEmpty()) {
+                    shoppingList.addItem(text);
+                    adapter.notifyItemInserted(shoppingList.getItems().size() - 1);
+                    input.setText("");
+                    input.requestFocus();
+                    MainActivity.saveData(ListDetailActivity.this);
+                }
+            });
+
+        } else {
+
+            // Disable editing for archived lists
+            input.setEnabled(false);
+            addButton.setEnabled(false);
+        }
 
         // Swipe to delete
         ItemTouchHelper helper = new ItemTouchHelper(
