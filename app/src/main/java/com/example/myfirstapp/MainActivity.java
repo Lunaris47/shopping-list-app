@@ -159,17 +159,24 @@ public class MainActivity extends AppCompatActivity {
                     .setNegativeButton("Cancel", null)
                     .show();
         });
+    }
 
-        // --------------------------------------------------
-        // OPEN ARCHIVED LISTS SCREEN
-        // Long press toolbar to view archived lists
-        // --------------------------------------------------
-        findViewById(R.id.toolbar).setOnLongClickListener(v -> {
+    @Override
+    public boolean onCreateOptionsMenu(android.view.Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(android.view.MenuItem item) {
+
+        if (item.getItemId() == R.id.menu_archived) {
 
             startActivity(new Intent(this, ArchivedListsActivity.class));
-
             return true;
-        });
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     // --------------------------------------------------
