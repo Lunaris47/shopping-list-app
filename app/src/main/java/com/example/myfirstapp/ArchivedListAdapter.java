@@ -40,7 +40,41 @@ public class ArchivedListAdapter extends RecyclerView.Adapter<ArchivedListAdapte
         ShoppingList list = lists.get(position);
         holder.title.setText(list.getTitle());
 
-        holder.itemView.setOnClickListener(v -> listener.onRestore(list));
+        holder.itemView.setOnLongClickListener(v -> {
+
+            String[] options = {"Restore List", "Delete List"};
+
+            new android.app.AlertDialog.Builder(v.getContext())
+                    .setTitle(list.getTitle())
+                    .setItems(options, (dialog, which) -> {
+
+                        if (which == 0) { // Restore list
+
+                            list.setArchived(false);
+
+                            MainActivity.saveData(v.getContext());
+
+                            lists.remove(list);
+                            notifyDataSetChanged();
+
+                            // Return to the main screen so it refreshes
+                            ((android.app.Activity) v.getContext()).finish();
+                        }
+
+                        else if (which == 1) { // Delete
+
+                            MainActivity.shoppingLists.remove(list);
+                            MainActivity.saveData(v.getContext());
+
+                            lists.remove(list);
+                            notifyDataSetChanged();
+                        }
+
+                    })
+                    .show();
+
+            return true;
+        });
     }
 
     @Override
