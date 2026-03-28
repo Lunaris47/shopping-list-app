@@ -4,15 +4,31 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="120dp"
-    android:layout_margin="8dp"
-    android:padding="16dp">
+    android:layout_margin="8dp">
 
-    <TextView
-        android:id="@+id/listTitle"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:text="@string/list_title_placeholder"/>
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/listTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:text="@string/list_title_placeholder"/>
+
+        <TextView
+            android:id="@+id/listRecurrence"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textSize="12sp"
+            android:textColor="#FF6200EE"
+            android:visibility="gone"/>
+
+    </LinearLayout>
 
 </com.google.android.material.card.MaterialCardView>
