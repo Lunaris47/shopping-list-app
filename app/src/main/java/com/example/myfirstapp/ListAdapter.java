@@ -1,14 +1,18 @@
 package com.example.myfirstapp;
 
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.content.Intent;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.Collections;
 import java.util.List;
 
 public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
@@ -19,14 +23,31 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
     // Maximum number of item previews shown on a card
     private static final int MAX_PREVIEW_ITEMS = 3;
 
+    // Reference to ItemTouchHelper so the drag handle can start a drag
+    private ItemTouchHelper itemTouchHelper;
+
+    // Callback to notify MainActivity to save after a drag is complete
+    public interface OnListReorderedListener {
+        void onListReordered();
+    }
+
+    private final OnListReorderedListener reorderedListener;
+
     public interface OnListLongClickListener {
         void onListLongClick(int position);
     }
 
     public ListAdapter(List<ShoppingList> lists,
-                       OnListLongClickListener listener) {
+                       OnListLongClickListener longClickListener,
+                       OnListReorderedListener reorderedListener) {
         this.lists = lists;
-        this.longClickListener = listener;
+        this.longClickListener = longClickListener;
+        this.reorderedListener = reorderedListener;
+    }
+
+    // Called from MainActivity after attaching ItemTouchHelper to RecyclerView
+    public void setItemTouchHelper(ItemTouchHelper itemTouchHelper) {
+        this.itemTouchHelper = itemTouchHelper;
     }
 
     @NonNull
@@ -64,6 +85,20 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
         bindItemPreview(holder, list);
 
         // -----------------------------------------------
+        // DRAG HANDLE
+        // Touch on the handle starts the drag
+        // Long press on the card still opens the options menu
+        // -----------------------------------------------
+        holder.dragHandle.setOnTouchListener((v, event) -> {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                if (itemTouchHelper != null) {
+                    itemTouchHelper.startDrag(holder);
+                }
+            }
+            return false;
+        });
+
+        // -----------------------------------------------
         // CLICK LISTENERS
         // -----------------------------------------------
 
@@ -74,11 +109,46 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
             v.getContext().startActivity(intent);
         });
 
-        // Long press → archive / delete options
+        // Long press → options menu (unchanged)
         holder.itemView.setOnLongClickListener(v -> {
             longClickListener.onListLongClick(position);
             return true;
         });
+    }
+
+    // -----------------------------------------------
+    // Called by ItemTouchHelper when a card is dragged
+    // Swaps items in the list and updates the master
+    // shoppingLists order to match visibleLists order
+    // -----------------------------------------------
+    public void onItemMoved(int fromPosition, int toPosition) {
+
+        // Swap in visibleLists (what the adapter sees)
+        Collections.swap(lists, fromPosition, toPosition);
+
+        // Mirror the swap in shoppingLists (the master list)
+        // so the order persists correctly when saved
+        ShoppingList fromList = lists.get(toPosition);
+        ShoppingList toList = lists.get(fromPosition);
+
+        int fromIndex = MainActivity.shoppingLists.indexOf(fromList);
+        int toIndex = MainActivity.shoppingLists.indexOf(toList);
+
+        if (fromIndex != -1 && toIndex != -1) {
+            Collections.swap(MainActivity.shoppingLists, fromIndex, toIndex);
+        }
+
+        notifyItemMoved(fromPosition, toPosition);
+    }
+
+    // -----------------------------------------------
+    // Called by ItemTouchHelper when drag is complete
+    // Triggers save so new order persists
+    // -----------------------------------------------
+    public void onItemDropped() {
+        if (reorderedListener != null) {
+            reorderedListener.onListReordered();
+        }
     }
 
     // -----------------------------------------------
@@ -90,7 +160,6 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
 
         List<ShoppingItem> items = list.getItems();
 
-        // Collect all preview TextViews into an array for clean iteration
         TextView[] previewViews = {
                 holder.previewItem1,
                 holder.previewItem2,
@@ -98,7 +167,6 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
         };
 
         if (items == null || items.isEmpty()) {
-            // No items — hide divider and all preview views
             holder.previewDivider.setVisibility(View.GONE);
             for (TextView tv : previewViews) {
                 tv.setVisibility(View.GONE);
@@ -107,7 +175,6 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
             return;
         }
 
-        // Items exist — show the divider
         holder.previewDivider.setVisibility(View.VISIBLE);
 
         int totalItems = items.size();
@@ -119,19 +186,16 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
                 previewViews[i].setText(prefix + item.getName());
                 previewViews[i].setVisibility(View.VISIBLE);
 
-                // Dim checked items slightly so unchecked ones stand out
                 if (item.isChecked()) {
                     previewViews[i].setAlpha(0.45f);
                 } else {
                     previewViews[i].setAlpha(1.0f);
                 }
             } else {
-                // Fewer items than MAX_PREVIEW_ITEMS — hide unused slots
                 previewViews[i].setVisibility(View.GONE);
             }
         }
 
-        // Show overflow label if there are more than MAX_PREVIEW_ITEMS
         int remaining = totalItems - MAX_PREVIEW_ITEMS;
 
         if (remaining > 0) {
@@ -153,19 +217,15 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
         switch (list.getRecurringType()) {
 
             case "weekly":
-                // e.g. "↻ Every Sunday"
                 return "↻ Every " + list.getRecurringValue();
 
             case "monthly":
-                // e.g. "↻ Every 1st of the month"
                 return "↻ Every " + getOrdinal(list.getRecurringValue()) + " of the month";
 
             case "yearly":
-                // e.g. "↻ Every March 25"
                 return "↻ Every " + formatYearlyDate(list.getRecurringValue());
 
             default:
-                // "none" or anything unexpected → no label
                 return null;
         }
     }
@@ -188,7 +248,6 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
             return date != null ? outputFormat.format(date) : mmDd;
 
         } catch (java.text.ParseException e) {
-            // If parsing fails, fall back to raw value
             return mmDd;
         }
     }
@@ -203,7 +262,6 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
         try {
             int n = Integer.parseInt(numberStr.trim());
 
-            // Special cases: 11th, 12th, 13th
             if (n >= 11 && n <= 13) return n + "th";
 
             switch (n % 10) {
@@ -226,6 +284,7 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView title;
         TextView recurrence;
+        ImageView dragHandle;
         View previewDivider;
         TextView previewItem1;
         TextView previewItem2;
@@ -236,6 +295,7 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
             super(itemView);
             title = itemView.findViewById(R.id.listTitle);
             recurrence = itemView.findViewById(R.id.listRecurrence);
+            dragHandle = itemView.findViewById(R.id.dragHandle);
             previewDivider = itemView.findViewById(R.id.previewDivider);
             previewItem1 = itemView.findViewById(R.id.previewItem1);
             previewItem2 = itemView.findViewById(R.id.previewItem2);
