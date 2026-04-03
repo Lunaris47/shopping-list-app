@@ -70,15 +70,20 @@ public class ListDetailActivity extends AppCompatActivity {
             return true;
         });
 
-        // Adapter with toggle callback
+        // -----------------------------------------------
+        // Adapter — listName passed so it appears in
+        // the notification when a reminder fires
+        // -----------------------------------------------
         adapter = new ItemAdapter(
                 shoppingList.getItems(),
+                shoppingList.getTitle(),
                 () -> MainActivity.saveData(ListDetailActivity.this)
         );
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
-        recyclerView.setItemAnimator(new androidx.recyclerview.widget.DefaultItemAnimator());
+        recyclerView.setItemAnimator(
+                new androidx.recyclerview.widget.DefaultItemAnimator());
         recyclerView.setHasFixedSize(true);
         recyclerView.setEdgeEffectFactory(new RecyclerView.EdgeEffectFactory());
 

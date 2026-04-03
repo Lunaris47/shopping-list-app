@@ -2,6 +2,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.myfirstapp">
 
+    <!-- ─── PERMISSIONS ─── -->
+
+    <!-- Required to post notifications (Android 13+) -->
+    <uses-permission
+        android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <!-- Required to schedule exact alarms (Android 12+) -->
+    <uses-permission
+        android:name="android.permission.USE_EXACT_ALARM"/>
+
+    <!-- Required to reschedule alarms after device reboot -->
+    <uses-permission
+        android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -9,21 +23,28 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MyFirstApp">
+
+        <!-- ─── ACTIVITIES ─── -->
         <activity
             android:name=".ArchivedListsActivity"
-            android:exported="false" />
+            android:exported="false"/>
         <activity
             android:name=".ListDetailActivity"
-            android:exported="false" />
+            android:exported="false"/>
         <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!-- ─── REMINDER BROADCAST RECEIVER ─── -->
+        <receiver
+            android:name=".ReminderReceiver"
+            android:exported="false"/>
+
     </application>
 
 </manifest>

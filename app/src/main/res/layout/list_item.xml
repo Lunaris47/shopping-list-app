@@ -27,12 +27,14 @@
         android:gravity="center_vertical"
         android:padding="16dp">
 
+        <!-- ─── CHECKBOX ─── -->
         <CheckBox
             android:id="@+id/itemCheckbox"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:buttonTint="@color/accent_green"/>
 
+        <!-- ─── ITEM NAME ─── -->
         <TextView
             android:id="@+id/itemText"
             android:layout_width="0dp"
@@ -41,6 +43,19 @@
             android:textSize="18sp"
             android:textColor="@color/text_primary"
             android:paddingStart="8dp"/>
+
+        <!-- ─── REMINDER BELL ─── -->
+        <!-- Outline bell = no reminder set   -->
+        <!-- Filled bell  = reminder is set   -->
+        <ImageButton
+            android:id="@+id/reminderButton"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Set reminder"
+            android:src="@drawable/ic_bell_outline"
+            app:tint="@color/text_secondary"
+            android:layout_marginStart="8dp"/>
 
     </LinearLayout>
 
