@@ -161,9 +161,9 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
     }
 
     // -----------------------------------------------
-    // SHOW OPTIONS WHEN REMINDER ALREADY EXISTS
-    // Gives user choice to change or cancel reminder
-    // -----------------------------------------------
+// SHOW OPTIONS WHEN REMINDER ALREADY EXISTS
+// Gives user choice to change or cancel reminder
+// -----------------------------------------------
     private void showReminderOptionsDialog(Context context,
                                            ShoppingItem item,
                                            int position) {
@@ -173,11 +173,11 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
                 "EEE, MMM d yyyy 'at' h:mm a", Locale.getDefault());
         String formattedTime = sdf.format(new Date(item.getReminderTime()));
 
+        // Move the formatted time into the title so setItems works correctly
         String[] options = {"Change Reminder", "Cancel Reminder"};
 
         new AlertDialog.Builder(context)
-                .setTitle("Reminder set for:")
-                .setMessage(formattedTime)
+                .setTitle("Reminder: " + formattedTime)
                 .setItems(options, (dialog, which) -> {
 
                     if (which == 0) {
