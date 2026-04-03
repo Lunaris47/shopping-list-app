@@ -1,17 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
     android:clickable="true"
-    android:focusable="true">
+    android:focusable="true"
+    app:cardBackgroundColor="@color/card_dark"
+    app:cardCornerRadius="10dp"
+    app:cardElevation="2dp">
 
     <View
         android:id="@+id/completedDivider"
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#CCCCCC"
+        android:background="@color/divider_dark"
         android:visibility="gone"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp"/>
@@ -26,7 +30,8 @@
         <CheckBox
             android:id="@+id/itemCheckbox"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content"
+            android:buttonTint="@color/accent_green"/>
 
         <TextView
             android:id="@+id/itemText"
@@ -34,6 +39,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:textSize="18sp"
+            android:textColor="@color/text_primary"
             android:paddingStart="8dp"/>
 
     </LinearLayout>
