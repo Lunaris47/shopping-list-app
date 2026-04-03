@@ -4,7 +4,8 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="120dp"
+    android:layout_height="wrap_content"
+    android:minHeight="120dp"
     android:layout_margin="8dp"
     app:cardBackgroundColor="@color/card_dark"
     app:cardElevation="4dp"
@@ -12,10 +13,11 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="16dp">
 
+        <!-- ─── TITLE ─── -->
         <TextView
             android:id="@+id/listTitle"
             android:layout_width="match_parent"
@@ -25,13 +27,70 @@
             android:textColor="@color/text_primary"
             android:text="@string/list_title_placeholder"/>
 
+        <!-- ─── RECURRENCE LABEL ─── -->
         <TextView
             android:id="@+id/listRecurrence"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="4dp"
             android:textSize="12sp"
             android:textColor="@color/accent_violet_light"
+            android:visibility="gone"/>
+
+        <!-- ─── DIVIDER (only visible when items exist) ─── -->
+        <View
+            android:id="@+id/previewDivider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="6dp"
+            android:background="@color/divider_dark"
+            android:visibility="gone"/>
+
+        <!-- ─── ITEM PREVIEW 1 ─── -->
+        <TextView
+            android:id="@+id/previewItem1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:visibility="gone"/>
+
+        <!-- ─── ITEM PREVIEW 2 ─── -->
+        <TextView
+            android:id="@+id/previewItem2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:visibility="gone"/>
+
+        <!-- ─── ITEM PREVIEW 3 ─── -->
+        <TextView
+            android:id="@+id/previewItem3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:visibility="gone"/>
+
+        <!-- ─── OVERFLOW LABEL (e.g. "+4 more...") ─── -->
+        <TextView
+            android:id="@+id/previewOverflow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:textStyle="italic"
             android:visibility="gone"/>
 
     </LinearLayout>

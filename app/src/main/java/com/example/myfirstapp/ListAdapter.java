@@ -16,6 +16,9 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
     private final List<ShoppingList> lists;
     private final OnListLongClickListener longClickListener;
 
+    // Maximum number of item previews shown on a card
+    private static final int MAX_PREVIEW_ITEMS = 3;
+
     public interface OnListLongClickListener {
         void onListLongClick(int position);
     }
@@ -37,6 +40,10 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         ShoppingList list = lists.get(position);
+
+        // -----------------------------------------------
+        // TITLE
+        // -----------------------------------------------
         holder.title.setText(list.getTitle());
 
         // -----------------------------------------------
@@ -51,6 +58,15 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
             holder.recurrence.setVisibility(View.GONE);
         }
 
+        // -----------------------------------------------
+        // ITEM PREVIEW
+        // -----------------------------------------------
+        bindItemPreview(holder, list);
+
+        // -----------------------------------------------
+        // CLICK LISTENERS
+        // -----------------------------------------------
+
         // Tap → open list
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(v.getContext(), ListDetailActivity.class);
@@ -63,6 +79,67 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
             longClickListener.onListLongClick(position);
             return true;
         });
+    }
+
+    // -----------------------------------------------
+    // Binds item preview TextViews on the card
+    // Shows up to MAX_PREVIEW_ITEMS items
+    // Hides everything if list is empty
+    // -----------------------------------------------
+    private void bindItemPreview(ViewHolder holder, ShoppingList list) {
+
+        List<ShoppingItem> items = list.getItems();
+
+        // Collect all preview TextViews into an array for clean iteration
+        TextView[] previewViews = {
+                holder.previewItem1,
+                holder.previewItem2,
+                holder.previewItem3
+        };
+
+        if (items == null || items.isEmpty()) {
+            // No items — hide divider and all preview views
+            holder.previewDivider.setVisibility(View.GONE);
+            for (TextView tv : previewViews) {
+                tv.setVisibility(View.GONE);
+            }
+            holder.previewOverflow.setVisibility(View.GONE);
+            return;
+        }
+
+        // Items exist — show the divider
+        holder.previewDivider.setVisibility(View.VISIBLE);
+
+        int totalItems = items.size();
+
+        for (int i = 0; i < MAX_PREVIEW_ITEMS; i++) {
+            if (i < totalItems) {
+                ShoppingItem item = items.get(i);
+                String prefix = item.isChecked() ? "✓ " : "• ";
+                previewViews[i].setText(prefix + item.getName());
+                previewViews[i].setVisibility(View.VISIBLE);
+
+                // Dim checked items slightly so unchecked ones stand out
+                if (item.isChecked()) {
+                    previewViews[i].setAlpha(0.45f);
+                } else {
+                    previewViews[i].setAlpha(1.0f);
+                }
+            } else {
+                // Fewer items than MAX_PREVIEW_ITEMS — hide unused slots
+                previewViews[i].setVisibility(View.GONE);
+            }
+        }
+
+        // Show overflow label if there are more than MAX_PREVIEW_ITEMS
+        int remaining = totalItems - MAX_PREVIEW_ITEMS;
+
+        if (remaining > 0) {
+            holder.previewOverflow.setText("+" + remaining + " more...");
+            holder.previewOverflow.setVisibility(View.VISIBLE);
+        } else {
+            holder.previewOverflow.setVisibility(View.GONE);
+        }
     }
 
     // -----------------------------------------------
@@ -149,11 +226,21 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView title;
         TextView recurrence;
+        View previewDivider;
+        TextView previewItem1;
+        TextView previewItem2;
+        TextView previewItem3;
+        TextView previewOverflow;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             title = itemView.findViewById(R.id.listTitle);
             recurrence = itemView.findViewById(R.id.listRecurrence);
+            previewDivider = itemView.findViewById(R.id.previewDivider);
+            previewItem1 = itemView.findViewById(R.id.previewItem1);
+            previewItem2 = itemView.findViewById(R.id.previewItem2);
+            previewItem3 = itemView.findViewById(R.id.previewItem3);
+            previewOverflow = itemView.findViewById(R.id.previewOverflow);
         }
     }
 }
