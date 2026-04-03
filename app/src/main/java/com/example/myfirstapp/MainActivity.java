@@ -30,6 +30,9 @@ public class MainActivity extends AppCompatActivity {
 
     private ListAdapter adapter;
 
+    // 🔹 Promoted to instance field so all methods can reference it
+    private RecyclerView recyclerView;
+
     // 🔹 SharedPreferences keys
     private static final String PREFS_NAME = "shopping_prefs";
     private static final String LIST_KEY = "shopping_lists";
@@ -44,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         setSupportActionBar(findViewById(R.id.toolbar));
 
-        RecyclerView recyclerView = findViewById(R.id.recyclerView);
+        recyclerView = findViewById(R.id.recyclerView);
         FloatingActionButton fab = findViewById(R.id.fabAddList);
 
         // 🔹 Load saved lists from SharedPreferences
@@ -67,168 +70,8 @@ public class MainActivity extends AppCompatActivity {
 
         // 🔹 Adapter for displaying visible lists
         adapter = new ListAdapter(visibleLists, position -> {
-
-            String[] options = {"Archive List", "Delete List"};
-
-            new AlertDialog.Builder(MainActivity.this)
-                    .setTitle("List Options")
-                    .setItems(options, (dialog, which) -> {
-
-                        // Get the list selected from visible lists
-                        ShoppingList selectedList = visibleLists.get(position);
-
-                        // -------------------------
-// ARCHIVE LIST
-// -------------------------
-                        if (which == 0) {
-
-                            String[] repeatOptions = {"No", "Weekly", "Monthly", "Yearly"};
-
-                            new AlertDialog.Builder(MainActivity.this)
-                                    .setTitle("Repeat this list?")
-                                    .setItems(repeatOptions, (dialog2, repeatChoice) -> {
-
-                                        // -------------------------
-                                        // NO REPEAT
-                                        // -------------------------
-                                        if (repeatChoice == 0) {
-
-                                            selectedList.setRecurringType("none");
-                                            selectedList.setRecurringValue("");
-
-                                            selectedList.setArchived(true);
-
-                                            refreshVisibleLists();
-                                            saveData(this);
-
-                                            Snackbar.make(recyclerView, "List archived",
-                                                            Snackbar.LENGTH_LONG)
-                                                    .setAction("UNDO", v -> {
-
-                                                        selectedList.setArchived(false);
-                                                        selectedList.setRecurringType("none");
-
-                                                        refreshVisibleLists();
-                                                        saveData(this);
-
-                                                    })
-                                                    .show();
-                                        }
-
-                                        // -------------------------
-                                        // WEEKLY
-                                        // -------------------------
-                                        else if (repeatChoice == 1) {
-
-                                            String[] days = {
-                                                    "Sunday","Monday","Tuesday",
-                                                    "Wednesday","Thursday","Friday","Saturday"
-                                            };
-
-                                            new AlertDialog.Builder(MainActivity.this)
-                                                    .setTitle("Repeat every week on:")
-                                                    .setItems(days, (dialog3, dayIndex) -> {
-
-                                                        selectedList.setRecurringType("weekly");
-                                                        selectedList.setRecurringValue(days[dayIndex]);
-
-                                                        selectedList.setArchived(true);
-
-                                                        refreshVisibleLists();
-                                                        saveData(this);
-
-                                                        Snackbar.make(recyclerView,
-                                                                "List archived (weekly)",
-                                                                Snackbar.LENGTH_LONG).show();
-                                                    })
-                                                    .show();
-                                        }
-
-                                        // -------------------------
-                                        // MONTHLY
-                                        // -------------------------
-                                        else if (repeatChoice == 2) {
-
-                                            String[] days = new String[31];
-
-                                            for (int i = 0; i < 31; i++) {
-                                                days[i] = String.valueOf(i + 1);
-                                            }
-
-                                            new AlertDialog.Builder(MainActivity.this)
-                                                    .setTitle("Repeat every month on day:")
-                                                    .setItems(days, (dialog3, dayIndex) -> {
-
-                                                        selectedList.setRecurringType("monthly");
-                                                        selectedList.setRecurringValue(days[dayIndex]);
-
-                                                        selectedList.setArchived(true);
-
-                                                        refreshVisibleLists();
-                                                        saveData(this);
-
-                                                        Snackbar.make(recyclerView,
-                                                                "List archived (monthly)",
-                                                                Snackbar.LENGTH_LONG).show();
-                                                    })
-                                                    .show();
-                                        }
-
-                                        // -------------------------
-                                        // YEARLY
-                                        // -------------------------
-                                        else if (repeatChoice == 3) {
-
-                                            java.text.SimpleDateFormat sdf =
-                                                    new java.text.SimpleDateFormat("MM-dd",
-                                                            java.util.Locale.getDefault());
-
-                                            String today = sdf.format(new java.util.Date());
-
-                                            selectedList.setRecurringType("yearly");
-                                            selectedList.setRecurringValue(today);
-
-                                            selectedList.setArchived(true);
-
-                                            refreshVisibleLists();
-                                            saveData(this);
-
-                                            Snackbar.make(recyclerView,
-                                                    "List archived (yearly)",
-                                                    Snackbar.LENGTH_LONG).show();
-                                        }
-
-                                    })
-                                    .show();
-                        }
-
-                        // -------------------------
-                        // DELETE LIST
-                        // -------------------------
-                        else if (which == 1) {
-
-                            shoppingLists.remove(selectedList);
-
-                            refreshVisibleLists();
-                            saveData(this);
-
-                            Snackbar.make(recyclerView,
-                                            "List deleted",
-                                            Snackbar.LENGTH_LONG)
-                                    .setAction("UNDO", v -> {
-
-                                        shoppingLists.add(selectedList);
-                                        refreshVisibleLists();
-                                        saveData(this);
-
-                                    })
-                                    .show();
-                        }
-
-                    })
-                    .setNegativeButton("Cancel", null)
-                    .show();
-
+            ShoppingList selectedList = visibleLists.get(position);
+            showListOptions(selectedList);
         });
 
         // 🔹 Grid layout (2 list cards per row)
@@ -268,18 +111,233 @@ public class MainActivity extends AppCompatActivity {
                 String name = input.getText().toString().trim();
 
                 if (!name.isEmpty()) {
-
                     shoppingLists.add(new ShoppingList(name));
                     refreshVisibleLists();
                     saveData(this);
-
                     dialog.dismiss();
                 }
 
                 return true;
             });
-
         });
+    }
+
+    // --------------------------------------------------
+    // LONG PRESS MENU
+    // Three clean, separate options
+    // --------------------------------------------------
+    private void showListOptions(ShoppingList selectedList) {
+
+        String[] options = {"Set Recurrence", "Archive List", "Delete List"};
+
+        new AlertDialog.Builder(this)
+                .setTitle("List Options")
+                .setItems(options, (dialog, which) -> {
+
+                    if (which == 0) {
+                        // -------------------------
+                        // SET RECURRENCE
+                        // -------------------------
+                        showRecurrenceDialog(selectedList);
+
+                    } else if (which == 1) {
+                        // -------------------------
+                        // ARCHIVE LIST
+                        // -------------------------
+                        archiveList(selectedList);
+
+                    } else if (which == 2) {
+                        // -------------------------
+                        // DELETE LIST
+                        // -------------------------
+                        deleteList(selectedList);
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    // --------------------------------------------------
+// SET RECURRENCE
+// Completely independent from archiving
+// Can be set, changed, or removed at any time
+// --------------------------------------------------
+    private void showRecurrenceDialog(ShoppingList selectedList) {
+
+        // Pre-declare arrays outside of lambda scope to avoid compiler issues
+        final String[] weekDays = {
+                "Sunday", "Monday", "Tuesday",
+                "Wednesday", "Thursday", "Friday", "Saturday"
+        };
+
+        // Build monthDays using Array
+        final String[] monthDays = {
+                "1","2","3","4","5","6","7","8","9","10",
+                "11","12","13","14","15","16","17","18","19","20",
+                "21","22","23","24","25","26","27","28","29","30",
+                "31"
+        };
+
+        // Show the current recurrence state as the dialog message
+        // so the user always knows what is currently set
+        String currentSetting = getCurrentRecurrenceDescription(selectedList);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Set Recurrence — Current: " + currentSetting)
+                .setItems(new String[]{"No Recurrence", "Weekly", "Monthly", "Yearly"},
+
+                        (dialog, repeatChoice) -> {
+
+                            // -------------------------
+                            // NO RECURRENCE
+                            // -------------------------
+                            if (repeatChoice == 0) {
+
+                                selectedList.setRecurringType("none");
+                                selectedList.setRecurringValue("");
+
+                                refreshVisibleLists();
+                                saveData(this);
+
+                                Snackbar.make(recyclerView,
+                                        "Recurrence removed",
+                                        Snackbar.LENGTH_SHORT).show();
+                            }
+
+                            // -------------------------
+                            // WEEKLY
+                            // -------------------------
+                            else if (repeatChoice == 1) {
+
+                                new AlertDialog.Builder(this)
+                                        .setTitle("Repeat every week on:")
+                                        .setItems(weekDays, (dialog2, dayIndex) -> {
+
+                                            selectedList.setRecurringType("weekly");
+                                            selectedList.setRecurringValue(weekDays[dayIndex]);
+
+                                            refreshVisibleLists();
+                                            saveData(this);
+
+                                            Snackbar.make(recyclerView,
+                                                    "Repeats every " + weekDays[dayIndex],
+                                                    Snackbar.LENGTH_SHORT).show();
+                                        })
+                                        .show();
+                            }
+
+                            // -------------------------
+                            // MONTHLY
+                            // -------------------------
+                            else if (repeatChoice == 2) {
+
+                                new AlertDialog.Builder(this)
+                                        .setTitle("Repeat every month on day:")
+                                        .setItems(monthDays, (dialog2, dayIndex) -> {
+
+                                            selectedList.setRecurringType("monthly");
+                                            selectedList.setRecurringValue(monthDays[dayIndex]);
+
+                                            refreshVisibleLists();
+                                            saveData(this);
+
+                                            Snackbar.make(recyclerView,
+                                                    "Repeats every month on day " + monthDays[dayIndex],
+                                                    Snackbar.LENGTH_SHORT).show();
+                                        })
+                                        .show();
+                            }
+
+                            // -------------------------
+                            // YEARLY
+                            // -------------------------
+                            else if (repeatChoice == 3) {
+
+                                java.text.SimpleDateFormat sdf =
+                                        new java.text.SimpleDateFormat("MM-dd",
+                                                java.util.Locale.getDefault());
+
+                                String today = sdf.format(new java.util.Date());
+
+                                selectedList.setRecurringType("yearly");
+                                selectedList.setRecurringValue(today);
+
+                                refreshVisibleLists();
+                                saveData(this);
+
+                                Snackbar.make(recyclerView,
+                                        "Repeats every year on this date",
+                                        Snackbar.LENGTH_SHORT).show();
+                            }
+                        })
+                .show();
+    }
+
+
+
+    // --------------------------------------------------
+    // ARCHIVE LIST
+    // Clean single action — no follow-up dialogs
+    // Recurrence settings are preserved as-is
+    // --------------------------------------------------
+    private void archiveList(ShoppingList selectedList) {
+
+        selectedList.setArchived(true);
+
+        refreshVisibleLists();
+        saveData(this);
+
+        Snackbar.make(recyclerView, "List archived", Snackbar.LENGTH_LONG)
+                .setAction("UNDO", v -> {
+
+                    selectedList.setArchived(false);
+
+                    refreshVisibleLists();
+                    saveData(this);
+                })
+                .show();
+    }
+
+    // --------------------------------------------------
+    // DELETE LIST
+    // Removes permanently with undo
+    // --------------------------------------------------
+    private void deleteList(ShoppingList selectedList) {
+
+        shoppingLists.remove(selectedList);
+
+        refreshVisibleLists();
+        saveData(this);
+
+        Snackbar.make(recyclerView, "List deleted", Snackbar.LENGTH_LONG)
+                .setAction("UNDO", v -> {
+
+                    shoppingLists.add(selectedList);
+                    refreshVisibleLists();
+                    saveData(this);
+                })
+                .show();
+    }
+
+    // --------------------------------------------------
+    // RETURNS HUMAN-READABLE CURRENT RECURRENCE STATE
+    // Used as the subtitle in the recurrence dialog
+    // so users always know what is currently set
+    // --------------------------------------------------
+    private String getCurrentRecurrenceDescription(ShoppingList list) {
+
+        if (list.getRecurringType() == null) return "None";
+
+        switch (list.getRecurringType()) {
+            case "weekly":
+                return "Every " + list.getRecurringValue();
+            case "monthly":
+                return "Every month on day " + list.getRecurringValue();
+            case "yearly":
+                return "Every year on " + list.getRecurringValue();
+            default:
+                return "None";
+        }
     }
 
     @Override
@@ -292,7 +350,6 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(android.view.MenuItem item) {
 
         if (item.getItemId() == R.id.menu_archived) {
-
             startActivity(new Intent(this, ArchivedListsActivity.class));
             return true;
         }
@@ -334,15 +391,12 @@ public class MainActivity extends AppCompatActivity {
         for (ShoppingList list : shoppingLists) {
 
             if (!list.isArchived()) continue;
-
             if (todayDate.equals(list.getLastRestoredDate())) continue;
 
             switch (list.getRecurringType()) {
 
                 case "weekly":
-
                     if (todayDay.equalsIgnoreCase(list.getRecurringValue())) {
-
                         list.setArchived(false);
                         list.resetItems();
                         list.setLastRestoredDate(todayDate);
@@ -350,10 +404,7 @@ public class MainActivity extends AppCompatActivity {
                     break;
 
                 case "monthly":
-
-                    if (dayOfMonth ==
-                            Integer.parseInt(list.getRecurringValue())) {
-
+                    if (dayOfMonth == Integer.parseInt(list.getRecurringValue())) {
                         list.setArchived(false);
                         list.resetItems();
                         list.setLastRestoredDate(todayDate);
@@ -361,9 +412,7 @@ public class MainActivity extends AppCompatActivity {
                     break;
 
                 case "yearly":
-
                     if (todayMonthDay.equals(list.getRecurringValue())) {
-
                         list.setArchived(false);
                         list.resetItems();
                         list.setLastRestoredDate(todayDate);
@@ -384,10 +433,8 @@ public class MainActivity extends AppCompatActivity {
         String json = prefs.getString(LIST_KEY, null);
 
         if (json != null) {
-
             Type type = new TypeToken<List<ShoppingList>>() {}.getType();
             List<ShoppingList> savedLists = gson.fromJson(json, type);
-
             shoppingLists.clear();
             shoppingLists.addAll(savedLists);
         }
@@ -400,10 +447,7 @@ public class MainActivity extends AppCompatActivity {
 
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
-
-        String json = gson.toJson(shoppingLists);
-
-        editor.putString(LIST_KEY, json);
+        editor.putString(LIST_KEY, gson.toJson(shoppingLists));
         editor.apply();
     }
 
