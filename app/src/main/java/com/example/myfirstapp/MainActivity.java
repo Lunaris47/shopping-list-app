@@ -77,8 +77,11 @@ public class MainActivity extends AppCompatActivity {
                     ShoppingList selectedList = visibleLists.get(position);
                     showListOptions(selectedList);
                 },
-                // 🔹 Save data when drag reorder is complete
-                () -> saveData(this)
+                // 🔹 Refresh sort and save when favorite toggled or drag complete
+                () -> {
+                    refreshVisibleLists();
+                    saveData(this);
+                }
         );
 
         // 🔹 Grid layout (2 list cards per row)

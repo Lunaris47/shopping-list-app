@@ -169,13 +169,23 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
     // -----------------------------------------------
     public void onItemMoved(int fromPosition, int toPosition) {
 
+        ShoppingList draggingList = lists.get(fromPosition);
+        ShoppingList targetList = lists.get(toPosition);
+
+        // -----------------------------------------------
+        // DRAG CONSTRAINT
+        // Prevent favorited cards from being dragged into
+        // the non-favorited section and vice versa
+        // -----------------------------------------------
+        if (draggingList.isFavorite() != targetList.isFavorite()) {
+            // Sections don't match — cancel the drag
+            return;
+        }
+
         Collections.swap(lists, fromPosition, toPosition);
 
-        ShoppingList fromList = lists.get(toPosition);
-        ShoppingList toList = lists.get(fromPosition);
-
-        int fromIndex = MainActivity.shoppingLists.indexOf(fromList);
-        int toIndex = MainActivity.shoppingLists.indexOf(toList);
+        int fromIndex = MainActivity.shoppingLists.indexOf(draggingList);
+        int toIndex = MainActivity.shoppingLists.indexOf(targetList);
 
         if (fromIndex != -1 && toIndex != -1) {
             Collections.swap(MainActivity.shoppingLists, fromIndex, toIndex);
