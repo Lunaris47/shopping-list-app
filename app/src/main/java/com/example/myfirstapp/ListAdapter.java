@@ -103,10 +103,15 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
         // -----------------------------------------------
 
         // Tap → open list
+        // Use the actual index from shoppingLists, not visibleLists position
+        // This prevents stale index bugs after drag reordering
         holder.itemView.setOnClickListener(v -> {
-            Intent intent = new Intent(v.getContext(), ListDetailActivity.class);
-            intent.putExtra("list_index", position);
-            v.getContext().startActivity(intent);
+            int masterIndex = MainActivity.shoppingLists.indexOf(list);
+            if (masterIndex != -1) {
+                Intent intent = new Intent(v.getContext(), ListDetailActivity.class);
+                intent.putExtra("list_index", masterIndex);
+                v.getContext().startActivity(intent);
+            }
         });
 
         // Long press → options menu (unchanged)
