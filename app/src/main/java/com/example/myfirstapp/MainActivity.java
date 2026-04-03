@@ -398,6 +398,15 @@ public class MainActivity extends AppCompatActivity {
             if (!list.isArchived()) continue;
             if (todayDate.equals(list.getLastRestoredDate())) continue;
 
+            // -----------------------------------------------
+            // Null guard — handles lists saved before
+            // recurringType had a default value
+            // Sets a safe default so switch never sees null
+            // -----------------------------------------------
+            if (list.getRecurringType() == null) {
+                list.setRecurringType("none");
+            }
+
             switch (list.getRecurringType()) {
 
                 case "weekly":
@@ -429,6 +438,7 @@ public class MainActivity extends AppCompatActivity {
         refreshVisibleLists();
     }
 
+
     // --------------------------------------------------
     // LOAD LISTS FROM SHARED PREFERENCES
     // --------------------------------------------------
@@ -458,14 +468,23 @@ public class MainActivity extends AppCompatActivity {
 
     // --------------------------------------------------
     // FILTER VISIBLE LISTS
-    // Only show non-archived lists on the home screen
+    // Favorites float to the top, then non-favorites
+    // Order within each group is preserved
     // --------------------------------------------------
     private void refreshVisibleLists() {
 
         visibleLists.clear();
 
+        // First pass — add favorited lists
         for (ShoppingList list : shoppingLists) {
-            if (!list.isArchived()) {
+            if (!list.isArchived() && list.isFavorite()) {
+                visibleLists.add(list);
+            }
+        }
+
+        // Second pass — add non-favorited lists
+        for (ShoppingList list : shoppingLists) {
+            if (!list.isArchived() && !list.isFavorite()) {
                 visibleLists.add(list);
             }
         }
@@ -474,5 +493,6 @@ public class MainActivity extends AppCompatActivity {
             adapter.notifyDataSetChanged();
         }
     }
+
 }
 

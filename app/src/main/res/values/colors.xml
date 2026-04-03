@@ -10,9 +10,15 @@
     <color name="surface_dark">#2A2A3D</color>
     <color name="card_dark">#2E2E42</color>
 
+    <!-- Favorite card — warm violet tinted surface -->
+    <color name="card_favorite">#3A3355</color>
+
     <!-- Accent -->
     <color name="accent_violet">#A78BFA</color>
     <color name="accent_violet_light">#C4B5FD</color>
+
+    <!-- Star / Favorite accent -->
+    <color name="accent_gold">#FBBF24</color>
 
     <!-- Text -->
     <color name="text_primary">#E8E8F0</color>

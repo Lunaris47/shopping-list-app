@@ -11,6 +11,9 @@ public class ShoppingList {
     // Indicates whether the list is hidden from the main screen
     private boolean archived = false;
 
+    // Indicates whether the list is favorited
+    private boolean favorite = false;
+
     // Recurring configuration
     // none, weekly, monthly, yearly
     private String recurringType = "none";
@@ -79,6 +82,18 @@ public class ShoppingList {
 
     public void setArchived(boolean archived) {
         this.archived = archived;
+    }
+
+    // -------------------------
+    // Favorite State
+    // -------------------------
+
+    public boolean isFavorite() {
+        return favorite;
+    }
+
+    public void setFavorite(boolean favorite) {
+        this.favorite = favorite;
     }
 
     // -------------------------

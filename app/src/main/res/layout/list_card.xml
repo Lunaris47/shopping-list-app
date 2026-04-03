@@ -3,6 +3,7 @@
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/listCard"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:minHeight="120dp"
@@ -17,7 +18,7 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- ─── TITLE ROW (title + drag handle) ─── -->
+        <!-- ─── TITLE ROW (title + star + drag handle) ─── -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -34,6 +35,16 @@
                 android:textColor="@color/text_primary"
                 android:text="@string/list_title_placeholder"/>
 
+            <!-- ─── STAR / FAVORITE BUTTON ─── -->
+            <ImageButton
+                android:id="@+id/favoriteButton"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Favorite list"
+                android:src="@drawable/ic_star_outline"
+                android:layout_marginEnd="4dp"/>
+
             <!-- ─── DRAG HANDLE ─── -->
             <ImageView
                 android:id="@+id/dragHandle"
@@ -42,7 +53,7 @@
                 android:src="@drawable/ic_drag_handle"
                 android:contentDescription="Drag to reorder"
                 app:tint="@color/text_secondary"
-                android:layout_marginStart="8dp"/>
+                android:layout_marginStart="4dp"/>
 
         </LinearLayout>
 

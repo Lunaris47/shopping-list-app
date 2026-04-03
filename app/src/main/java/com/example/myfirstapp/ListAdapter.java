@@ -4,13 +4,17 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.content.Intent;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.card.MaterialCardView;
 
 import java.util.Collections;
 import java.util.List;
@@ -85,9 +89,50 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
         bindItemPreview(holder, list);
 
         // -----------------------------------------------
+        // FAVORITE STATE
+        // Star icon and card color update together
+        // Both branches always explicitly set to prevent
+        // stale state from RecyclerView view recycling
+        // -----------------------------------------------
+        if (list.isFavorite()) {
+            holder.favoriteButton.setImageResource(R.drawable.ic_star_filled);
+            holder.favoriteButton.setColorFilter(
+                    ContextCompat.getColor(
+                            holder.itemView.getContext(), R.color.accent_gold));
+            holder.card.setCardBackgroundColor(
+                    ContextCompat.getColor(
+                            holder.itemView.getContext(), R.color.card_favorite));
+        } else {
+            holder.favoriteButton.setImageResource(R.drawable.ic_star_outline);
+            holder.favoriteButton.setColorFilter(
+                    ContextCompat.getColor(
+                            holder.itemView.getContext(), R.color.text_secondary));
+            holder.card.setCardBackgroundColor(
+                    ContextCompat.getColor(
+                            holder.itemView.getContext(), R.color.card_dark));
+        }
+
+        // -----------------------------------------------
+        // STAR TAP → TOGGLE FAVORITE
+        // setClickable ensures button captures touch
+        // before the card click listener does
+        // setFocusable false prevents focus interference
+        // notifyDataSetChanged forces immediate redraw
+        // -----------------------------------------------
+
+        holder.favoriteButton.setClickable(true);
+        holder.favoriteButton.setFocusable(false);
+        holder.favoriteButton.setOnClickListener(v -> {
+            list.setFavorite(!list.isFavorite());
+            notifyDataSetChanged();
+            if (reorderedListener != null) {
+                reorderedListener.onListReordered();
+            }
+        });
+
+
+        // -----------------------------------------------
         // DRAG HANDLE
-        // Touch on the handle starts the drag
-        // Long press on the card still opens the options menu
         // -----------------------------------------------
         holder.dragHandle.setOnTouchListener((v, event) -> {
             if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
@@ -102,9 +147,7 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
         // CLICK LISTENERS
         // -----------------------------------------------
 
-        // Tap → open list
-        // Use the actual index from shoppingLists, not visibleLists position
-        // This prevents stale index bugs after drag reordering
+        // Tap → open list using master index to avoid stale position bug
         holder.itemView.setOnClickListener(v -> {
             int masterIndex = MainActivity.shoppingLists.indexOf(list);
             if (masterIndex != -1) {
@@ -114,7 +157,7 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
             }
         });
 
-        // Long press → options menu (unchanged)
+        // Long press → options menu
         holder.itemView.setOnLongClickListener(v -> {
             longClickListener.onListLongClick(position);
             return true;
@@ -123,16 +166,11 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
 
     // -----------------------------------------------
     // Called by ItemTouchHelper when a card is dragged
-    // Swaps items in the list and updates the master
-    // shoppingLists order to match visibleLists order
     // -----------------------------------------------
     public void onItemMoved(int fromPosition, int toPosition) {
 
-        // Swap in visibleLists (what the adapter sees)
         Collections.swap(lists, fromPosition, toPosition);
 
-        // Mirror the swap in shoppingLists (the master list)
-        // so the order persists correctly when saved
         ShoppingList fromList = lists.get(toPosition);
         ShoppingList toList = lists.get(fromPosition);
 
@@ -148,7 +186,6 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
 
     // -----------------------------------------------
     // Called by ItemTouchHelper when drag is complete
-    // Triggers save so new order persists
     // -----------------------------------------------
     public void onItemDropped() {
         if (reorderedListener != null) {
@@ -158,8 +195,6 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
 
     // -----------------------------------------------
     // Binds item preview TextViews on the card
-    // Shows up to MAX_PREVIEW_ITEMS items
-    // Hides everything if list is empty
     // -----------------------------------------------
     private void bindItemPreview(ViewHolder holder, ShoppingList list) {
 
@@ -213,23 +248,18 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
 
     // -----------------------------------------------
     // Builds the human-readable recurrence string
-    // Returns null if the list is not recurring
     // -----------------------------------------------
     private String getRecurrenceLabel(ShoppingList list) {
 
         if (list.getRecurringType() == null) return null;
 
         switch (list.getRecurringType()) {
-
             case "weekly":
                 return "↻ Every " + list.getRecurringValue();
-
             case "monthly":
                 return "↻ Every " + getOrdinal(list.getRecurringValue()) + " of the month";
-
             case "yearly":
                 return "↻ Every " + formatYearlyDate(list.getRecurringValue());
-
             default:
                 return null;
         }
@@ -245,13 +275,10 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
         try {
             java.text.SimpleDateFormat inputFormat =
                     new java.text.SimpleDateFormat("MM-dd", java.util.Locale.getDefault());
-
             java.text.SimpleDateFormat outputFormat =
                     new java.text.SimpleDateFormat("MMMM d", java.util.Locale.getDefault());
-
             java.util.Date date = inputFormat.parse(mmDd);
             return date != null ? outputFormat.format(date) : mmDd;
-
         } catch (java.text.ParseException e) {
             return mmDd;
         }
@@ -266,16 +293,13 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
 
         try {
             int n = Integer.parseInt(numberStr.trim());
-
             if (n >= 11 && n <= 13) return n + "th";
-
             switch (n % 10) {
                 case 1: return n + "st";
                 case 2: return n + "nd";
                 case 3: return n + "rd";
                 default: return n + "th";
             }
-
         } catch (NumberFormatException e) {
             return numberStr;
         }
@@ -287,8 +311,10 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
+        MaterialCardView card;
         TextView title;
         TextView recurrence;
+        ImageButton favoriteButton;
         ImageView dragHandle;
         View previewDivider;
         TextView previewItem1;
@@ -298,8 +324,10 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
+            card = itemView.findViewById(R.id.listCard);
             title = itemView.findViewById(R.id.listTitle);
             recurrence = itemView.findViewById(R.id.listRecurrence);
+            favoriteButton = itemView.findViewById(R.id.favoriteButton);
             dragHandle = itemView.findViewById(R.id.dragHandle);
             previewDivider = itemView.findViewById(R.id.previewDivider);
             previewItem1 = itemView.findViewById(R.id.previewItem1);
