@@ -15,9 +15,6 @@
         android:layout_height="wrap_content"
         android:text="+ Add item"
         android:textSize="14sp"
-        android:textColor="#9999AA"
-        android:textStyle="italic"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp"/>
+        android:textColor="@color/text_secondary"/>
 
 </LinearLayout>

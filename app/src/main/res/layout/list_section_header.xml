@@ -11,14 +11,13 @@
 
     <TextView
         android:id="@+id/sectionTitle"
-        android:layout_height="wrap_content"
         android:layout_width="0dp"
+        android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:textSize="13sp"
+        android:textSize="16sp"
         android:textStyle="bold"
-        android:textColor="#A78BFA"
-        android:letterSpacing="0.08"
-        android:text="Section"/>
+        android:textColor="@color/accent_violet_light"
+        android:letterSpacing="0.05"/>
 
     <ImageButton
         android:id="@+id/deleteSectionButton"
