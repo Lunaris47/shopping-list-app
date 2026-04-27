@@ -12,7 +12,7 @@ import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CheckBox;
+import android.widget.ImageView;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -283,27 +283,24 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         // Item text + strikethrough + gray out
         holder.itemText.setText(item.getName());
-        holder.itemCheckbox.setOnCheckedChangeListener(null);
-        holder.itemCheckbox.setChecked(item.isChecked());
 
         if (item.isChecked()) {
+            holder.itemCheckbox.setImageResource(R.drawable.ic_circle_filled);
             holder.itemText.setPaintFlags(
                     holder.itemText.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
             holder.itemText.setAlpha(0.4f);
         } else {
+            holder.itemCheckbox.setImageResource(R.drawable.ic_circle_outline);
             holder.itemText.setPaintFlags(
                     holder.itemText.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG));
             holder.itemText.setAlpha(1.0f);
         }
 
-        // Checkbox
-        holder.itemCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            item.setChecked(isChecked);
+        holder.itemView.setOnClickListener(v -> {
+            item.setChecked(!item.isChecked());
             refreshList();
             onItemChanged.run();
         });
-
-        holder.itemView.setOnClickListener(v -> holder.itemCheckbox.toggle());
 
         // Reminder bell
         if (item.hasReminder()) {
@@ -575,7 +572,7 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     static class ItemViewHolder extends RecyclerView.ViewHolder {
         View divider;
         TextView itemText;
-        CheckBox itemCheckbox;
+        ImageView itemCheckbox;
         ImageButton reminderButton;
 
         ItemViewHolder(@NonNull View itemView) {
