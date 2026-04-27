@@ -1,12 +1,12 @@
 package com.example.myfirstapp;
 
+import android.app.AlertDialog;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 
 import androidx.annotation.NonNull;
@@ -16,12 +16,16 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
+
+import java.util.List;
 
 public class ListDetailActivity extends AppCompatActivity {
 
     private ShoppingList shoppingList;
     private ItemAdapter adapter;
+    private RecyclerView recyclerView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,79 +44,82 @@ public class ListDetailActivity extends AppCompatActivity {
         int index = getIntent().getIntExtra("list_index", -1);
         shoppingList = MainActivity.shoppingLists.get(index);
 
-        EditText input = findViewById(R.id.itemInput);
-        Button addButton = findViewById(R.id.addItemButton);
-        RecyclerView recyclerView = findViewById(R.id.detailRecyclerView);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle(shoppingList.getTitle());
+        }
 
-        input.requestFocus();
-
-        input.post(() -> {
-            android.view.inputmethod.InputMethodManager imm =
-                    (android.view.inputmethod.InputMethodManager)
-                            getSystemService(INPUT_METHOD_SERVICE);
-
-            if (imm != null) {
-                imm.showSoftInput(input,
-                        android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
-            }
-        });
-
-        input.setOnEditorActionListener((v, actionId, event) -> {
-            String text = input.getText().toString().trim();
-
-            if (!text.isEmpty()) {
-                shoppingList.addItem(text);
-                adapter.notifyItemInserted(shoppingList.getItems().size() - 1);
-                input.setText("");
-                MainActivity.saveData(ListDetailActivity.this);
-            }
-
-            return true;
-        });
+        recyclerView = findViewById(R.id.detailRecyclerView);
+        FloatingActionButton fabAddSection = findViewById(R.id.fabAddSection);
 
         // -----------------------------------------------
-        // Adapter — listName passed so it appears in
-        // the notification when a reminder fires
+        // ADAPTER
         // -----------------------------------------------
         adapter = new ItemAdapter(
-                shoppingList.getItems(),
+                shoppingList.getSections(),
                 shoppingList.getTitle(),
-                () -> MainActivity.saveData(ListDetailActivity.this)
+                archivedView,
+                () -> MainActivity.saveData(ListDetailActivity.this),
+                (deletedSection, sectionIndex) -> {
+                    shoppingList.getSections().remove(deletedSection);
+                    adapter.refreshList();
+                    MainActivity.saveData(ListDetailActivity.this);
+
+                    Snackbar.make(recyclerView,
+                                    "Section deleted",
+                                    Snackbar.LENGTH_LONG)
+                            .setAction("UNDO", v -> {
+                                shoppingList.getSections().add(
+                                        sectionIndex, deletedSection);
+                                adapter.refreshList();
+                                MainActivity.saveData(ListDetailActivity.this);
+                            })
+                            .show();
+                }
         );
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
         recyclerView.setItemAnimator(
                 new androidx.recyclerview.widget.DefaultItemAnimator());
-        recyclerView.setHasFixedSize(true);
+        recyclerView.setHasFixedSize(false);
         recyclerView.setEdgeEffectFactory(new RecyclerView.EdgeEffectFactory());
 
-        // Add item
+        // -----------------------------------------------
+        // FAB — ADD SECTION
+        // Hidden in archived view
+        // -----------------------------------------------
         if (!archivedView) {
+            fabAddSection.setOnClickListener(v -> {
+                EditText sectionInput = new EditText(this);
+                sectionInput.setHint("Section name");
+                sectionInput.setSingleLine(true);
 
-            addButton.setOnClickListener(v -> {
-                String text = input.getText().toString().trim();
-                if (!text.isEmpty()) {
-                    shoppingList.addItem(text);
-                    adapter.notifyItemInserted(shoppingList.getItems().size() - 1);
-                    input.setText("");
-                    input.requestFocus();
-                    MainActivity.saveData(ListDetailActivity.this);
-                }
+                new AlertDialog.Builder(this)
+                        .setTitle("New Section")
+                        .setView(sectionInput)
+                        .setPositiveButton("Add", (dialog, which) -> {
+                            String name = sectionInput.getText()
+                                    .toString().trim();
+                            if (!name.isEmpty()) {
+                                shoppingList.addSection(name);
+                                adapter.refreshList();
+                                MainActivity.saveData(ListDetailActivity.this);
+                            }
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
             });
-
         } else {
-
-            input.setVisibility(View.GONE);
-            addButton.setVisibility(View.GONE);
+            fabAddSection.setVisibility(View.GONE);
         }
 
-        // Swipe to delete
+        // -----------------------------------------------
+        // SWIPE TO DELETE
+        // -----------------------------------------------
         ItemTouchHelper helper = new ItemTouchHelper(
                 new ItemTouchHelper.SimpleCallback(
                         0,
-                        ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT
-                ) {
+                        ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
 
                     @Override
                     public boolean onMove(@NonNull RecyclerView recyclerView,
@@ -122,26 +129,31 @@ public class ListDetailActivity extends AppCompatActivity {
                     }
 
                     @Override
+                    public int getSwipeDirs(@NonNull RecyclerView recyclerView,
+                                            @NonNull RecyclerView.ViewHolder viewHolder) {
+                        int position = viewHolder.getBindingAdapterPosition();
+                        if (!adapter.isSwipeable(position)) return 0;
+                        return super.getSwipeDirs(recyclerView, viewHolder);
+                    }
+
+                    @Override
                     public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder,
                                          int direction) {
-
                         int position = viewHolder.getBindingAdapterPosition();
                         if (position == RecyclerView.NO_POSITION) return;
 
-                        ShoppingItem deletedItem =
-                                shoppingList.getItems().get(position);
+                        ItemAdapter.SwipeDeleteResult result =
+                                adapter.deleteAtPosition(position);
 
-                        shoppingList.getItems().remove(position);
-                        adapter.notifyItemRemoved(position);
-                        MainActivity.saveData(ListDetailActivity.this);
+                        if (result == null) return;
 
                         Snackbar.make(recyclerView,
                                         "Item deleted",
                                         Snackbar.LENGTH_LONG)
                                 .setAction("UNDO", v -> {
-                                    shoppingList.getItems()
-                                            .add(position, deletedItem);
-                                    adapter.notifyItemInserted(position);
+                                    result.section.getItems().add(
+                                            result.indexInSection, result.item);
+                                    adapter.refreshList();
                                     MainActivity.saveData(ListDetailActivity.this);
                                 })
                                 .show();
@@ -151,81 +163,51 @@ public class ListDetailActivity extends AppCompatActivity {
                     public void onChildDraw(@NonNull Canvas c,
                                             @NonNull RecyclerView recyclerView,
                                             @NonNull RecyclerView.ViewHolder viewHolder,
-                                            float dX,
-                                            float dY,
+                                            float dX, float dY,
                                             int actionState,
                                             boolean isCurrentlyActive) {
 
                         View itemView = viewHolder.itemView;
-
                         Paint paint = new Paint();
                         paint.setColor(Color.RED);
 
                         if (dX > 0) {
-                            c.drawRect(
-                                    itemView.getLeft(),
+                            c.drawRect(itemView.getLeft(),
                                     itemView.getTop(),
                                     itemView.getLeft() + dX,
-                                    itemView.getBottom(),
-                                    paint
-                            );
+                                    itemView.getBottom(), paint);
                         } else {
-                            c.drawRect(
-                                    itemView.getRight() + dX,
+                            c.drawRect(itemView.getRight() + dX,
                                     itemView.getTop(),
                                     itemView.getRight(),
-                                    itemView.getBottom(),
-                                    paint
-                            );
+                                    itemView.getBottom(), paint);
                         }
 
                         Drawable icon = ResourcesCompat.getDrawable(
-                                getResources(),
-                                R.drawable.ic_delete,
-                                null
-                        );
+                                getResources(), R.drawable.ic_delete, null);
 
                         if (icon != null) {
-                            int iconMargin =
-                                    (itemView.getHeight()
-                                            - icon.getIntrinsicHeight()) / 2;
-
+                            int iconMargin = (itemView.getHeight()
+                                    - icon.getIntrinsicHeight()) / 2;
                             int iconTop = itemView.getTop() + iconMargin;
-                            int iconBottom =
-                                    iconTop + icon.getIntrinsicHeight();
+                            int iconBottom = iconTop + icon.getIntrinsicHeight();
 
                             if (dX > 0) {
-                                int iconLeft =
-                                        itemView.getLeft() + iconMargin;
-                                int iconRight =
-                                        iconLeft + icon.getIntrinsicWidth();
-                                icon.setBounds(iconLeft,
-                                        iconTop,
-                                        iconRight,
-                                        iconBottom);
+                                int iconLeft = itemView.getLeft() + iconMargin;
+                                int iconRight = iconLeft + icon.getIntrinsicWidth();
+                                icon.setBounds(iconLeft, iconTop,
+                                        iconRight, iconBottom);
                             } else {
-                                int iconRight =
-                                        itemView.getRight() - iconMargin;
-                                int iconLeft =
-                                        iconRight - icon.getIntrinsicWidth();
-                                icon.setBounds(iconLeft,
-                                        iconTop,
-                                        iconRight,
-                                        iconBottom);
+                                int iconRight = itemView.getRight() - iconMargin;
+                                int iconLeft = iconRight - icon.getIntrinsicWidth();
+                                icon.setBounds(iconLeft, iconTop,
+                                        iconRight, iconBottom);
                             }
-
                             icon.draw(c);
                         }
 
-                        super.onChildDraw(
-                                c,
-                                recyclerView,
-                                viewHolder,
-                                dX,
-                                dY,
-                                actionState,
-                                isCurrentlyActive
-                        );
+                        super.onChildDraw(c, recyclerView, viewHolder,
+                                dX, dY, actionState, isCurrentlyActive);
                     }
                 });
 

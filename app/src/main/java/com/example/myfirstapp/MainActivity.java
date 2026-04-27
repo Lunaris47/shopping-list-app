@@ -455,6 +455,15 @@ public class MainActivity extends AppCompatActivity {
             List<ShoppingList> savedLists = gson.fromJson(json, type);
             shoppingLists.clear();
             shoppingLists.addAll(savedLists);
+            shoppingLists.clear();
+            shoppingLists.addAll(savedLists);
+
+            // Migrate old lists that have no sections yet
+            for (ShoppingList list : shoppingLists) {
+                if (list.getSections() == null || list.getSections().isEmpty()) {
+                    list.getSections().add(new ListSection(""));
+                }
+            }
         }
     }
 

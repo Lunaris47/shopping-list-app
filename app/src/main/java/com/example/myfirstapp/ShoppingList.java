@@ -6,7 +6,10 @@ import java.util.List;
 public class ShoppingList {
 
     private String title;
-    private final List<ShoppingItem> items;
+
+    // Sections replace the flat items list
+// Option C — default section always exists for uncategorized items
+    private List<ListSection> sections;
 
     // Indicates whether the list is hidden from the main screen
     private boolean archived = false;
@@ -15,26 +18,20 @@ public class ShoppingList {
     private boolean favorite = false;
 
     // Recurring configuration
-    // none, weekly, monthly, yearly
     private String recurringType = "none";
-
-    // Stores the recurrence value
-    // weekly  → Sunday
-    // monthly → 15
-    // yearly  → 03-25
     private String recurringValue = "";
-
-    // Prevents multiple restores in one day
     private String lastRestoredDate = "";
 
     public ShoppingList(String title) {
         this.title = title;
-        this.items = new ArrayList<>();
+        this.sections = new ArrayList<>();
+        // Always start with one default uncategorized section
+        this.sections.add(new ListSection(""));
     }
 
-    // -------------------------
-    // Title
-    // -------------------------
+// -------------------------
+// Title
+// -------------------------
 
     public String getTitle() {
         return title;
@@ -44,37 +41,51 @@ public class ShoppingList {
         this.title = title;
     }
 
-    // -------------------------
-    // Items
-    // -------------------------
+// -------------------------
+// Sections
+// -------------------------
 
-    public List<ShoppingItem> getItems() {
-        return items;
+    public List<ListSection> getSections() {
+        if (sections == null) {
+            sections = new ArrayList<>();
+            sections.add(new ListSection(""));
+        }
+        return sections;
     }
 
-    public void addItem(String name) {
-        items.add(new ShoppingItem(name));
+    public void addSection(String sectionTitle) {
+        getSections().add(new ListSection(sectionTitle));
     }
 
-    public void removeItem(int index) {
-        if (index >= 0 && index < items.size()) {
-            items.remove(index);
+    public void removeSection(int index) {
+        if (index >= 0 && index < getSections().size()) {
+            getSections().remove(index);
         }
     }
 
-    // Moves checked items to the bottom
-    public void reorderItems() {
-        items.sort((a, b) -> {
-            if (a.isChecked() == b.isChecked()) {
-                return 0;
-            }
-            return a.isChecked() ? 1 : -1;
-        });
+// -------------------------
+// Backward compatibility
+// Returns ALL items across ALL sections
+// Used by card preview in ListAdapter
+// -------------------------
+
+    public List<ShoppingItem> getItems() {
+        List<ShoppingItem> allItems = new ArrayList<>();
+        for (ListSection section : getSections()) {
+            allItems.addAll(section.getItems());
+        }
+        return allItems;
     }
 
-    // -------------------------
-    // Archived State
-    // -------------------------
+    // Adds item to the default section (first section)
+// Used for backward compatibility with existing save data
+    public void addItem(String name) {
+        getSections().get(0).addItem(name);
+    }
+
+// -------------------------
+// Archived State
+// -------------------------
 
     public boolean isArchived() {
         return archived;
@@ -84,9 +95,9 @@ public class ShoppingList {
         this.archived = archived;
     }
 
-    // -------------------------
-    // Favorite State
-    // -------------------------
+// -------------------------
+// Favorite State
+// -------------------------
 
     public boolean isFavorite() {
         return favorite;
@@ -96,9 +107,9 @@ public class ShoppingList {
         this.favorite = favorite;
     }
 
-    // -------------------------
-    // Recurring Configuration
-    // -------------------------
+// -------------------------
+// Recurring Configuration
+// -------------------------
 
     public String getRecurringType() {
         return recurringType;
@@ -116,9 +127,9 @@ public class ShoppingList {
         this.recurringValue = value;
     }
 
-    // -------------------------
-    // Recurring Restore Tracking
-    // -------------------------
+// -------------------------
+// Recurring Restore Tracking
+// -------------------------
 
     public String getLastRestoredDate() {
         return lastRestoredDate;
@@ -128,13 +139,13 @@ public class ShoppingList {
         this.lastRestoredDate = date;
     }
 
-    // -------------------------
-    // Reset items when list recurs
-    // -------------------------
+// -------------------------
+// Reset all items across all sections when list recurs
+// -------------------------
 
     public void resetItems() {
-        for (ShoppingItem item : items) {
-            item.setChecked(false);
+        for (ListSection section : getSections()) {
+            section.resetItems();
         }
     }
 }
