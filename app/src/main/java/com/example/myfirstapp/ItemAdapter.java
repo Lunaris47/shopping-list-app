@@ -317,7 +317,7 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             if (item.hasReminder()) {
                 showReminderOptionsDialog(context, item);
             } else {
-                showDateTimePicker(context, item);
+                showReminderDialog(context, item);
             }
         });
 
@@ -359,7 +359,7 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 .setTitle("Reminder: " + formattedTime)
                 .setItems(options, (dialog, which) -> {
                     if (which == 0) {
-                        showDateTimePicker(context, item);
+                        showReminderDialog(context, item);
                     } else if (which == 1) {
                         cancelReminder(context, item);
                         item.setReminderTime(0);
@@ -374,58 +374,179 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 .show();
     }
 
-    private void showDateTimePicker(Context context, ShoppingItem item) {
-        Calendar calendar = Calendar.getInstance();
+    private void showReminderDialog(Context context, ShoppingItem item) {
 
-        if (item.hasReminder()) {
-            calendar.setTimeInMillis(item.getReminderTime());
+        class ReminderState {
+            int year = -1;
+            int month = -1;
+            int day = -1;
+            int hour = -1;
+            int minute = -1;
         }
 
-        DatePickerDialog datePicker = new DatePickerDialog(
-                context,
-                (view, year, month, dayOfMonth) -> {
-                    TimePickerDialog timePicker = new TimePickerDialog(
-                            context,
-                            (timeView, hourOfDay, minute) -> {
-                                Calendar chosen = Calendar.getInstance();
-                                chosen.set(year, month, dayOfMonth,
-                                        hourOfDay, minute, 0);
-                                chosen.set(Calendar.MILLISECOND, 0);
+        final ReminderState state = new ReminderState();
 
-                                long triggerTime = chosen.getTimeInMillis();
+        if (item.hasReminder()) {
+            Calendar existing = Calendar.getInstance();
+            existing.setTimeInMillis(item.getReminderTime());
+            state.year = existing.get(Calendar.YEAR);
+            state.month = existing.get(Calendar.MONTH);
+            state.day = existing.get(Calendar.DAY_OF_MONTH);
+            state.hour = existing.get(Calendar.HOUR_OF_DAY);
+            state.minute = existing.get(Calendar.MINUTE);
+        }
 
-                                if (triggerTime <= System.currentTimeMillis()) {
-                                    Toast.makeText(context,
-                                            "Please choose a future date and time",
-                                            Toast.LENGTH_SHORT).show();
-                                    return;
-                                }
+        SimpleDateFormat dateFmt = new SimpleDateFormat(
+                "EEE, MMM d yyyy", Locale.getDefault());
+        SimpleDateFormat timeFmt = new SimpleDateFormat(
+                "h:mm a", Locale.getDefault());
 
-                                cancelReminder(context, item);
-                                item.setReminderTime(triggerTime);
-                                scheduleReminder(context, item, triggerTime);
-                                refreshList();
-                                onItemChanged.run();
+        android.widget.LinearLayout layout =
+                new android.widget.LinearLayout(context);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(48, 32, 48, 16);
 
-                                SimpleDateFormat sdf = new SimpleDateFormat(
-                                        "EEE, MMM d 'at' h:mm a",
-                                        Locale.getDefault());
-                                Toast.makeText(context,
-                                        "Reminder set for " +
-                                                sdf.format(new Date(triggerTime)),
-                                        Toast.LENGTH_LONG).show();
-                            },
-                            calendar.get(Calendar.HOUR_OF_DAY),
-                            calendar.get(Calendar.MINUTE),
-                            false);
-                    timePicker.show();
-                },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH));
+        final TextView dateTextView = new TextView(context);
+        dateTextView.setText(state.year == -1
+                ? "No date set — tap to choose"
+                : dateFmt.format(buildCalendar(
+                state.year, state.month, state.day, 0, 0).getTime()));
+        dateTextView.setTextSize(15);
+        dateTextView.setPadding(0, 16, 0, 16);
+        dateTextView.setTextColor(
+                ContextCompat.getColor(context, R.color.accent_violet_light));
 
-        datePicker.getDatePicker().setMinDate(System.currentTimeMillis());
-        datePicker.show();
+        final TextView timeTextView = new TextView(context);
+        timeTextView.setText(state.hour == -1
+                ? "No time set — optional"
+                : timeFmt.format(buildCalendar(
+                state.year, state.month, state.day,
+                state.hour, state.minute).getTime()));
+        timeTextView.setTextSize(15);
+        timeTextView.setPadding(0, 16, 0, 16);
+        timeTextView.setTextColor(
+                ContextCompat.getColor(context, R.color.text_secondary));
+
+        layout.addView(dateTextView);
+        layout.addView(timeTextView);
+
+        AlertDialog reminderDialog = new AlertDialog.Builder(context)
+                .setTitle("Set Reminder for: " + item.getName())
+                .setView(layout)
+                .setPositiveButton("Save", (dialog, which) -> {
+
+                    if (state.year == -1) {
+                        Toast.makeText(context,
+                                "Please choose a date first",
+                                Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    int hour = state.hour == -1 ? 9 : state.hour;
+                    int minute = state.minute == -1 ? 0 : state.minute;
+
+                    Calendar chosen = buildCalendar(
+                            state.year, state.month, state.day, hour, minute);
+
+                    long triggerTime = chosen.getTimeInMillis();
+
+                    if (triggerTime <= System.currentTimeMillis()) {
+                        Toast.makeText(context,
+                                "Please choose a future date and time",
+                                Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    cancelReminder(context, item);
+                    item.setReminderTime(triggerTime);
+                    scheduleReminder(context, item, triggerTime);
+                    refreshList();
+                    onItemChanged.run();
+
+                    SimpleDateFormat confirmFmt = new SimpleDateFormat(
+                            "EEE, MMM d 'at' h:mm a", Locale.getDefault());
+                    Toast.makeText(context,
+                            "Reminder set for " +
+                                    confirmFmt.format(new Date(triggerTime)),
+                            Toast.LENGTH_LONG).show();
+                })
+                .setNegativeButton("Cancel", null)
+                .create();
+
+        dateTextView.setOnClickListener(v -> {
+
+            Calendar cal = Calendar.getInstance();
+            if (state.year != -1) {
+                cal.set(state.year, state.month, state.day);
+            }
+
+            DatePickerDialog datePicker = new DatePickerDialog(
+                    context,
+                    (dateView, year, month, dayOfMonth) -> {
+                        state.year = year;
+                        state.month = month;
+                        state.day = dayOfMonth;
+
+                        Calendar selected = buildCalendar(
+                                year, month, dayOfMonth, 0, 0);
+                        dateTextView.setText(
+                                dateFmt.format(selected.getTime()));
+                        dateTextView.setTextColor(
+                                ContextCompat.getColor(
+                                        context, R.color.accent_violet));
+                        timeTextView.setTextColor(
+                                ContextCompat.getColor(
+                                        context, R.color.accent_violet_light));
+                    },
+                    cal.get(Calendar.YEAR),
+                    cal.get(Calendar.MONTH),
+                    cal.get(Calendar.DAY_OF_MONTH));
+
+            datePicker.getDatePicker().setMinDate(System.currentTimeMillis());
+            datePicker.show();
+        });
+
+        timeTextView.setOnClickListener(v -> {
+
+            if (state.year == -1) {
+                Toast.makeText(context,
+                        "Please choose a date first",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            int hour = state.hour == -1 ? 9 : state.hour;
+            int minute = state.minute == -1 ? 0 : state.minute;
+
+            TimePickerDialog timePicker = new TimePickerDialog(
+                    context,
+                    (timeView, hourOfDay, min) -> {
+                        state.hour = hourOfDay;
+                        state.minute = min;
+
+                        Calendar selected = buildCalendar(
+                                state.year, state.month, state.day,
+                                hourOfDay, min);
+                        timeTextView.setText(
+                                timeFmt.format(selected.getTime()));
+                        timeTextView.setTextColor(
+                                ContextCompat.getColor(
+                                        context, R.color.accent_violet));
+                    },
+                    hour, minute, false);
+
+            timePicker.show();
+        });
+
+        reminderDialog.show();
+    }
+
+    private Calendar buildCalendar(int year, int month, int day,
+                                   int hour, int minute) {
+        Calendar cal = Calendar.getInstance();
+        cal.set(year, month, day, hour, minute, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        return cal;
     }
 
     // -----------------------------------------------
