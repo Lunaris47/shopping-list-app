@@ -24,22 +24,13 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    // 🔹 Master list of ALL lists (including archived ones)
     public static final List<ShoppingList> shoppingLists = new ArrayList<>();
-
-    // 🔹 Lists currently visible on the home screen
     private final List<ShoppingList> visibleLists = new ArrayList<>();
-
     private ListAdapter adapter;
-
-    // 🔹 Promoted to instance field so all methods can reference it
     private RecyclerView recyclerView;
 
-    // 🔹 SharedPreferences keys
     private static final String PREFS_NAME = "shopping_prefs";
     private static final String LIST_KEY = "shopping_lists";
-
-    // 🔹 Gson instance used for saving/loading JSON
     private static final Gson gson = new Gson();
 
     @Override
@@ -49,19 +40,23 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         setSupportActionBar(findViewById(R.id.toolbar));
 
+        if (android.os.Build.VERSION.SDK_INT >=
+                android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(
+                        new String[]{android.Manifest.permission.POST_NOTIFICATIONS},
+                        1001);
+            }
+        }
+
         recyclerView = findViewById(R.id.recyclerView);
         FloatingActionButton fab = findViewById(R.id.fabAddList);
 
-        // 🔹 Load saved lists from SharedPreferences
         loadData();
-
-        // 🔹 Restore recurring lists if today matches their scheduled day
         checkRecurringLists();
-
-        // 🔹 Filter visible lists (exclude archived)
         refreshVisibleLists();
 
-        // 🔹 Add default sample lists only if no saved data exists
         if (shoppingLists.isEmpty()) {
             shoppingLists.add(new ShoppingList("Groceries"));
             shoppingLists.add(new ShoppingList("Homework"));
@@ -70,41 +65,30 @@ public class MainActivity extends AppCompatActivity {
             saveData(this);
         }
 
-        // 🔹 Adapter for displaying visible lists
         adapter = new ListAdapter(
                 visibleLists,
                 position -> {
                     ShoppingList selectedList = visibleLists.get(position);
                     showListOptions(selectedList);
                 },
-                // 🔹 Refresh sort and save when favorite toggled or drag complete
                 () -> {
                     refreshVisibleLists();
                     saveData(this);
                 }
         );
 
-        // 🔹 Grid layout (2 list cards per row)
         recyclerView.setLayoutManager(new GridLayoutManager(this, 2));
         recyclerView.setAdapter(adapter);
 
-        // --------------------------------------------------
-        // ITEM TOUCH HELPER — DRAG TO REORDER
-        // Handles drag gestures on the RecyclerView
-        // Swipe is disabled — only drag is enabled
-        // --------------------------------------------------
         ItemTouchHelper.Callback callback = new ItemTouchHelper.SimpleCallback(
-                // Drag directions — up, down, left, right for grid support
                 ItemTouchHelper.UP | ItemTouchHelper.DOWN |
                         ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT,
-                // Swipe directions — disabled
                 0) {
 
             @Override
             public boolean onMove(@NonNull RecyclerView recyclerView,
                                   @NonNull RecyclerView.ViewHolder viewHolder,
                                   @NonNull RecyclerView.ViewHolder target) {
-                // Notify adapter to swap items as the card is dragged
                 adapter.onItemMoved(
                         viewHolder.getAdapterPosition(),
                         target.getAdapterPosition()
@@ -115,35 +99,25 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder,
                                  int direction) {
-                // Swipe is disabled — nothing to do here
             }
 
             @Override
             public void clearView(@NonNull RecyclerView recyclerView,
                                   @NonNull RecyclerView.ViewHolder viewHolder) {
                 super.clearView(recyclerView, viewHolder);
-                // Drag is complete — save the new order
                 adapter.onItemDropped();
             }
 
             @Override
             public boolean isLongPressDragEnabled() {
-                // Disable long press drag — we use the handle instead
-                // This keeps long press free for the options menu
                 return false;
             }
         };
 
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(callback);
         itemTouchHelper.attachToRecyclerView(recyclerView);
-
-        // 🔹 Give the adapter a reference to the ItemTouchHelper
-        // so the drag handle can start drags
         adapter.setItemTouchHelper(itemTouchHelper);
 
-        // --------------------------------------------------
-        // FAB → CREATE NEW LIST
-        // --------------------------------------------------
         fab.setOnClickListener(v -> {
 
             EditText input = new EditText(this);
@@ -154,15 +128,12 @@ public class MainActivity extends AppCompatActivity {
                     .setTitle("Create New List")
                     .setView(input)
                     .setPositiveButton("Create", (d, which) -> {
-
                         String name = input.getText().toString().trim();
-
                         if (!name.isEmpty()) {
                             shoppingLists.add(new ShoppingList(name));
                             refreshVisibleLists();
                             saveData(this);
                         }
-
                     })
                     .setNegativeButton("Cancel", null)
                     .create();
@@ -170,25 +141,21 @@ public class MainActivity extends AppCompatActivity {
             dialog.show();
 
             input.setOnEditorActionListener((textView, actionId, event) -> {
-
                 String name = input.getText().toString().trim();
-
                 if (!name.isEmpty()) {
                     shoppingLists.add(new ShoppingList(name));
                     refreshVisibleLists();
                     saveData(this);
                     dialog.dismiss();
                 }
-
                 return true;
             });
         });
     }
 
     // --------------------------------------------------
-    // LONG PRESS MENU
-    // Three clean, separate options
-    // --------------------------------------------------
+// LONG PRESS MENU
+// --------------------------------------------------
     private void showListOptions(ShoppingList selectedList) {
 
         String[] options = {"Set Recurrence", "Archive List", "Delete List"};
@@ -196,7 +163,6 @@ public class MainActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle("List Options")
                 .setItems(options, (dialog, which) -> {
-
                     if (which == 0) {
                         showRecurrenceDialog(selectedList);
                     } else if (which == 1) {
@@ -210,11 +176,35 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // --------------------------------------------------
-    // SET RECURRENCE
-    // Completely independent from archiving
-    // Can be set, changed, or removed at any time
-    // --------------------------------------------------
+// SET RECURRENCE
+// --------------------------------------------------
     private void showRecurrenceDialog(ShoppingList selectedList) {
+
+        class RecurrenceState {
+            int selectedOption = 0;
+            String selectedDay = "";
+            String selectedYearlyDate = "";
+        }
+
+        final RecurrenceState state = new RecurrenceState();
+
+        String currentType = selectedList.getRecurringType();
+        if (currentType != null) {
+            switch (currentType) {
+                case "weekly":  state.selectedOption = 1; break;
+                case "monthly": state.selectedOption = 2; break;
+                case "yearly":  state.selectedOption = 3; break;
+                default:        state.selectedOption = 0; break;
+            }
+        }
+
+        state.selectedDay = selectedList.getRecurringValue() != null
+                ? selectedList.getRecurringValue() : "";
+
+        // Pre fill yearly date if already set
+        if (state.selectedOption == 3 && !state.selectedDay.isEmpty()) {
+            state.selectedYearlyDate = state.selectedDay;
+        }
 
         final String[] weekDays = {
                 "Sunday", "Monday", "Tuesday",
@@ -228,77 +218,376 @@ public class MainActivity extends AppCompatActivity {
                 "31"
         };
 
-        String currentSetting = getCurrentRecurrenceDescription(selectedList);
+        android.widget.LinearLayout layout =
+                new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(48, 16, 48, 8);
+
+        android.widget.RadioGroup radioGroup =
+                new android.widget.RadioGroup(this);
+        radioGroup.setOrientation(android.widget.RadioGroup.VERTICAL);
+
+        String[] options = {
+                "No Recurrence",
+                "Weekly",
+                "Monthly",
+                "Yearly",
+                "Holiday / Special Date (Coming Soon)"
+        };
+
+        for (int i = 0; i < options.length; i++) {
+            android.widget.RadioButton rb =
+                    new android.widget.RadioButton(this);
+            rb.setText(options[i]);
+            rb.setId(i);
+            rb.setTextSize(15);
+            rb.setPadding(0, 12, 0, 12);
+
+            if (i == 4) {
+                rb.setEnabled(false);
+                rb.setAlpha(0.4f);
+            }
+
+            if (i == state.selectedOption) {
+                rb.setChecked(true);
+            }
+
+            radioGroup.addView(rb);
+        }
+
+        final android.widget.LinearLayout subOptionLayout =
+                new android.widget.LinearLayout(this);
+        subOptionLayout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        subOptionLayout.setPadding(32, 8, 0, 8);
+        subOptionLayout.setVisibility(android.view.View.GONE);
+
+        final android.widget.TextView subOptionLabel =
+                new android.widget.TextView(this);
+        subOptionLabel.setTextSize(13);
+        subOptionLabel.setPadding(0, 4, 0, 4);
+        subOptionLabel.setTextColor(
+                androidx.core.content.ContextCompat.getColor(
+                        this, R.color.text_secondary));
+
+        final android.widget.Spinner subOptionSpinner =
+                new android.widget.Spinner(this);
+
+        // Yearly date picker button shown instead of spinner for yearly
+        final android.widget.Button yearlyDateButton =
+                new android.widget.Button(this);
+        yearlyDateButton.setVisibility(android.view.View.GONE);
+
+        subOptionLayout.addView(subOptionLabel);
+        subOptionLayout.addView(subOptionSpinner);
+        subOptionLayout.addView(yearlyDateButton);
+
+        final android.widget.TextView previewLabel =
+                new android.widget.TextView(this);
+        previewLabel.setTextSize(12);
+        previewLabel.setPadding(0, 16, 0, 4);
+        previewLabel.setTextColor(
+                androidx.core.content.ContextCompat.getColor(
+                        this, R.color.accent_violet_light));
+        previewLabel.setText(
+                "Current: " + getCurrentRecurrenceDescription(selectedList));
+
+        layout.addView(radioGroup);
+        layout.addView(subOptionLayout);
+        layout.addView(previewLabel);
+
+        android.widget.ArrayAdapter<String> weekAdapter =
+                new android.widget.ArrayAdapter<>(
+                        this,
+                        android.R.layout.simple_spinner_item,
+                        weekDays);
+        weekAdapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item);
+
+        android.widget.ArrayAdapter<String> monthAdapter =
+                new android.widget.ArrayAdapter<>(
+                        this,
+                        android.R.layout.simple_spinner_item,
+                        monthDays);
+        monthAdapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item);
+
+        android.widget.AdapterView.OnItemSelectedListener spinnerListener =
+                new android.widget.AdapterView.OnItemSelectedListener() {
+                    @Override
+                    public void onItemSelected(
+                            android.widget.AdapterView<?> parent,
+                            android.view.View view,
+                            int position,
+                            long id) {
+                        state.selectedDay =
+                                (String) parent.getItemAtPosition(position);
+                    }
+                    @Override
+                    public void onNothingSelected(
+                            android.widget.AdapterView<?> parent) {}
+                };
+
+        subOptionSpinner.setOnItemSelectedListener(spinnerListener);
+
+        // Helper to open yearly date picker
+        Runnable openYearlyPicker = () -> {
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+
+            // Pre fill with existing yearly date if set
+            if (!state.selectedYearlyDate.isEmpty()) {
+                try {
+                    java.text.SimpleDateFormat parseFmt =
+                            new java.text.SimpleDateFormat("MM-dd",
+                                    java.util.Locale.getDefault());
+                    java.util.Date parsed = parseFmt.parse(state.selectedYearlyDate);
+                    if (parsed != null) {
+                        java.util.Calendar temp = java.util.Calendar.getInstance();
+                        temp.setTime(parsed);
+                        cal.set(java.util.Calendar.MONTH, temp.get(java.util.Calendar.MONTH));
+                        cal.set(java.util.Calendar.DAY_OF_MONTH,
+                                temp.get(java.util.Calendar.DAY_OF_MONTH));
+                    }
+                } catch (java.text.ParseException e) {
+                    // use today as fallback
+                }
+            }
+
+            android.app.DatePickerDialog picker = new android.app.DatePickerDialog(
+                    this,
+                    (dateView, year, month, dayOfMonth) -> {
+                        java.util.Calendar picked = java.util.Calendar.getInstance();
+                        picked.set(year, month, dayOfMonth);
+
+                        java.text.SimpleDateFormat saveFmt =
+                                new java.text.SimpleDateFormat("MM-dd",
+                                        java.util.Locale.getDefault());
+                        java.text.SimpleDateFormat displayFmt =
+                                new java.text.SimpleDateFormat("MMMM d",
+                                        java.util.Locale.getDefault());
+
+                        state.selectedYearlyDate = saveFmt.format(picked.getTime());
+                        String display = displayFmt.format(picked.getTime());
+
+                        yearlyDateButton.setText("Selected: " + display);
+                        previewLabel.setText("Will be set to: Every year on " + display);
+                    },
+                    cal.get(java.util.Calendar.YEAR),
+                    cal.get(java.util.Calendar.MONTH),
+                    cal.get(java.util.Calendar.DAY_OF_MONTH));
+
+            picker.show();
+        };
+
+        yearlyDateButton.setOnClickListener(v -> openYearlyPicker.run());
+
+        // Show correct sub option if recurrence already set when dialog opens
+        if (state.selectedOption == 1) {
+            subOptionLabel.setText("Repeat every week on:");
+            subOptionSpinner.setAdapter(weekAdapter);
+            subOptionSpinner.setVisibility(android.view.View.VISIBLE);
+            yearlyDateButton.setVisibility(android.view.View.GONE);
+            for (int i = 0; i < weekDays.length; i++) {
+                if (weekDays[i].equals(state.selectedDay)) {
+                    subOptionSpinner.setSelection(i);
+                    break;
+                }
+            }
+            subOptionLayout.setVisibility(android.view.View.VISIBLE);
+        } else if (state.selectedOption == 2) {
+            subOptionLabel.setText("Repeat every month on day:");
+            subOptionSpinner.setAdapter(monthAdapter);
+            subOptionSpinner.setVisibility(android.view.View.VISIBLE);
+            yearlyDateButton.setVisibility(android.view.View.GONE);
+            for (int i = 0; i < monthDays.length; i++) {
+                if (monthDays[i].equals(state.selectedDay)) {
+                    subOptionSpinner.setSelection(i);
+                    break;
+                }
+            }
+            subOptionLayout.setVisibility(android.view.View.VISIBLE);
+        } else if (state.selectedOption == 3) {
+            subOptionLabel.setText("Tap to choose which date each year:");
+            subOptionSpinner.setVisibility(android.view.View.GONE);
+            yearlyDateButton.setVisibility(android.view.View.VISIBLE);
+            if (!state.selectedYearlyDate.isEmpty()) {
+                try {
+                    java.text.SimpleDateFormat parseFmt =
+                            new java.text.SimpleDateFormat("MM-dd",
+                                    java.util.Locale.getDefault());
+                    java.text.SimpleDateFormat displayFmt =
+                            new java.text.SimpleDateFormat("MMMM d",
+                                    java.util.Locale.getDefault());
+                    java.util.Date parsed = parseFmt.parse(state.selectedYearlyDate);
+                    if (parsed != null) {
+                        yearlyDateButton.setText(
+                                "Selected: " + displayFmt.format(parsed));
+                    }
+                } catch (java.text.ParseException e) {
+                    yearlyDateButton.setText("Tap to choose date");
+                }
+            } else {
+                yearlyDateButton.setText("Tap to choose date");
+            }
+            subOptionLayout.setVisibility(android.view.View.VISIBLE);
+        }
+
+        radioGroup.setOnCheckedChangeListener((group, checkedId) -> {
+            state.selectedOption = checkedId;
+
+            switch (checkedId) {
+                case 1:
+                    subOptionLabel.setText("Repeat every week on:");
+                    subOptionSpinner.setAdapter(weekAdapter);
+                    subOptionSpinner.setVisibility(android.view.View.VISIBLE);
+                    yearlyDateButton.setVisibility(android.view.View.GONE);
+                    if (!state.selectedDay.isEmpty()) {
+                        for (int i = 0; i < weekDays.length; i++) {
+                            if (weekDays[i].equals(state.selectedDay)) {
+                                subOptionSpinner.setSelection(i);
+                                break;
+                            }
+                        }
+                    }
+                    subOptionLayout.setVisibility(android.view.View.VISIBLE);
+                    previewLabel.setText("Will be set to: Every " + state.selectedDay);
+                    break;
+
+                case 2:
+                    subOptionLabel.setText("Repeat every month on day:");
+                    subOptionSpinner.setAdapter(monthAdapter);
+                    subOptionSpinner.setVisibility(android.view.View.VISIBLE);
+                    yearlyDateButton.setVisibility(android.view.View.GONE);
+                    if (!state.selectedDay.isEmpty()) {
+                        for (int i = 0; i < monthDays.length; i++) {
+                            if (monthDays[i].equals(state.selectedDay)) {
+                                subOptionSpinner.setSelection(i);
+                                break;
+                            }
+                        }
+                    }
+                    subOptionLayout.setVisibility(android.view.View.VISIBLE);
+                    previewLabel.setText("Will be set to: Every month on day "
+                            + state.selectedDay);
+                    break;
+
+                case 3:
+                    subOptionLabel.setText("Tap to choose which date each year:");
+                    subOptionSpinner.setVisibility(android.view.View.GONE);
+                    yearlyDateButton.setVisibility(android.view.View.VISIBLE);
+                    if (state.selectedYearlyDate.isEmpty()) {
+                        yearlyDateButton.setText("Tap to choose date");
+                        previewLabel.setText("Will be set to: Every year — tap button to pick date");
+                    } else {
+                        try {
+                            java.text.SimpleDateFormat parseFmt =
+                                    new java.text.SimpleDateFormat("MM-dd",
+                                            java.util.Locale.getDefault());
+                            java.text.SimpleDateFormat displayFmt =
+                                    new java.text.SimpleDateFormat("MMMM d",
+                                            java.util.Locale.getDefault());
+                            java.util.Date parsed = parseFmt.parse(state.selectedYearlyDate);
+                            if (parsed != null) {
+                                String display = displayFmt.format(parsed);
+                                yearlyDateButton.setText("Selected: " + display);
+                                previewLabel.setText("Will be set to: Every year on " + display);
+                            }
+                        } catch (java.text.ParseException e) {
+                            yearlyDateButton.setText("Tap to choose date");
+                        }
+                    }
+                    subOptionLayout.setVisibility(android.view.View.VISIBLE);
+                    break;
+
+                default:
+                    subOptionLayout.setVisibility(android.view.View.GONE);
+                    state.selectedDay = "";
+                    previewLabel.setText("Will be set to: None");
+                    break;
+            }
+        });
 
         new AlertDialog.Builder(this)
-                .setTitle("Set Recurrence — Current: " + currentSetting)
-                .setItems(new String[]{"No Recurrence", "Weekly", "Monthly", "Yearly"},
-                        (dialog, repeatChoice) -> {
+                .setTitle("Set Recurrence")
+                .setView(layout)
+                .setPositiveButton("Save", (dialog, which) -> {
 
-                            if (repeatChoice == 0) {
+                    switch (state.selectedOption) {
 
-                                selectedList.setRecurringType("none");
-                                selectedList.setRecurringValue("");
-                                refreshVisibleLists();
-                                saveData(this);
+                        case 0:
+                            selectedList.setRecurringType("none");
+                            selectedList.setRecurringValue("");
+                            refreshVisibleLists();
+                            saveData(this);
+                            Snackbar.make(recyclerView,
+                                    "Recurrence removed",
+                                    Snackbar.LENGTH_SHORT).show();
+                            break;
+
+                        case 1:
+                            String day = state.selectedDay.isEmpty()
+                                    ? "Sunday" : state.selectedDay;
+                            selectedList.setRecurringType("weekly");
+                            selectedList.setRecurringValue(day);
+                            refreshVisibleLists();
+                            saveData(this);
+                            Snackbar.make(recyclerView,
+                                    "Repeats every " + day,
+                                    Snackbar.LENGTH_SHORT).show();
+                            break;
+
+                        case 2:
+                            String dayNum = state.selectedDay.isEmpty()
+                                    ? "1" : state.selectedDay;
+                            selectedList.setRecurringType("monthly");
+                            selectedList.setRecurringValue(dayNum);
+                            refreshVisibleLists();
+                            saveData(this);
+                            Snackbar.make(recyclerView,
+                                    "Repeats every month on day " + dayNum,
+                                    Snackbar.LENGTH_SHORT).show();
+                            break;
+
+                        case 3:
+                            if (state.selectedYearlyDate.isEmpty()) {
                                 Snackbar.make(recyclerView,
-                                        "Recurrence removed",
+                                        "Please tap the button to choose a date",
                                         Snackbar.LENGTH_SHORT).show();
-
-                            } else if (repeatChoice == 1) {
-
-                                new AlertDialog.Builder(this)
-                                        .setTitle("Repeat every week on:")
-                                        .setItems(weekDays, (dialog2, dayIndex) -> {
-                                            selectedList.setRecurringType("weekly");
-                                            selectedList.setRecurringValue(weekDays[dayIndex]);
-                                            refreshVisibleLists();
-                                            saveData(this);
-                                            Snackbar.make(recyclerView,
-                                                    "Repeats every " + weekDays[dayIndex],
-                                                    Snackbar.LENGTH_SHORT).show();
-                                        })
-                                        .show();
-
-                            } else if (repeatChoice == 2) {
-
-                                new AlertDialog.Builder(this)
-                                        .setTitle("Repeat every month on day:")
-                                        .setItems(monthDays, (dialog2, dayIndex) -> {
-                                            selectedList.setRecurringType("monthly");
-                                            selectedList.setRecurringValue(monthDays[dayIndex]);
-                                            refreshVisibleLists();
-                                            saveData(this);
-                                            Snackbar.make(recyclerView,
-                                                    "Repeats every month on day " + monthDays[dayIndex],
-                                                    Snackbar.LENGTH_SHORT).show();
-                                        })
-                                        .show();
-
-                            } else if (repeatChoice == 3) {
-
-                                java.text.SimpleDateFormat sdf =
+                                return;
+                            }
+                            selectedList.setRecurringType("yearly");
+                            selectedList.setRecurringValue(state.selectedYearlyDate);
+                            refreshVisibleLists();
+                            saveData(this);
+                            try {
+                                java.text.SimpleDateFormat parseFmt =
                                         new java.text.SimpleDateFormat("MM-dd",
                                                 java.util.Locale.getDefault());
-                                String today = sdf.format(new java.util.Date());
-                                selectedList.setRecurringType("yearly");
-                                selectedList.setRecurringValue(today);
-                                refreshVisibleLists();
-                                saveData(this);
+                                java.text.SimpleDateFormat displayFmt =
+                                        new java.text.SimpleDateFormat("MMMM d",
+                                                java.util.Locale.getDefault());
+                                java.util.Date parsed =
+                                        parseFmt.parse(state.selectedYearlyDate);
+                                String display = parsed != null
+                                        ? displayFmt.format(parsed)
+                                        : state.selectedYearlyDate;
                                 Snackbar.make(recyclerView,
-                                        "Repeats every year on this date",
+                                        "Repeats every year on " + display,
+                                        Snackbar.LENGTH_SHORT).show();
+                            } catch (java.text.ParseException e) {
+                                Snackbar.make(recyclerView,
+                                        "Repeats every year",
                                         Snackbar.LENGTH_SHORT).show();
                             }
-                        })
+                            break;
+                    }
+                })
+                .setNegativeButton("Cancel", null)
                 .show();
     }
 
-
     // --------------------------------------------------
-    // ARCHIVE LIST
-    // Clean single action — no follow-up dialogs
-    // Recurrence settings are preserved as-is
-    // --------------------------------------------------
+// ARCHIVE LIST
+// --------------------------------------------------
     private void archiveList(ShoppingList selectedList) {
 
         selectedList.setArchived(true);
@@ -315,9 +604,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // --------------------------------------------------
-    // DELETE LIST
-    // Removes permanently with undo
-    // --------------------------------------------------
+// DELETE LIST
+// --------------------------------------------------
     private void deleteList(ShoppingList selectedList) {
 
         shoppingLists.remove(selectedList);
@@ -334,8 +622,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // --------------------------------------------------
-    // RETURNS HUMAN-READABLE CURRENT RECURRENCE STATE
-    // --------------------------------------------------
+// RETURNS HUMAN-READABLE CURRENT RECURRENCE STATE
+// --------------------------------------------------
     private String getCurrentRecurrenceDescription(ShoppingList list) {
 
         if (list.getRecurringType() == null) return "None";
@@ -360,12 +648,10 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(android.view.MenuItem item) {
-
         if (item.getItemId() == R.id.menu_archived) {
             startActivity(new Intent(this, ArchivedListsActivity.class));
             return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 
@@ -376,8 +662,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // --------------------------------------------------
-    // CHECK RECURRING LISTS
-    // --------------------------------------------------
+// CHECK RECURRING LISTS
+// --------------------------------------------------
     private void checkRecurringLists() {
 
         java.util.Calendar calendar = java.util.Calendar.getInstance();
@@ -401,11 +687,6 @@ public class MainActivity extends AppCompatActivity {
             if (!list.isArchived()) continue;
             if (todayDate.equals(list.getLastRestoredDate())) continue;
 
-            // -----------------------------------------------
-            // Null guard — handles lists saved before
-            // recurringType had a default value
-            // Sets a safe default so switch never sees null
-            // -----------------------------------------------
             if (list.getRecurringType() == null) {
                 list.setRecurringType("none");
             }
@@ -441,10 +722,9 @@ public class MainActivity extends AppCompatActivity {
         refreshVisibleLists();
     }
 
-
     // --------------------------------------------------
-    // LOAD LISTS FROM SHARED PREFERENCES
-    // --------------------------------------------------
+// LOAD LISTS FROM SHARED PREFERENCES
+// --------------------------------------------------
     private void loadData() {
 
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
@@ -455,10 +735,7 @@ public class MainActivity extends AppCompatActivity {
             List<ShoppingList> savedLists = gson.fromJson(json, type);
             shoppingLists.clear();
             shoppingLists.addAll(savedLists);
-            shoppingLists.clear();
-            shoppingLists.addAll(savedLists);
 
-            // Migrate old lists that have no sections yet
             for (ShoppingList list : shoppingLists) {
                 if (list.getSections() == null || list.getSections().isEmpty()) {
                     list.getSections().add(new ListSection(""));
@@ -468,8 +745,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // --------------------------------------------------
-    // SAVE LISTS TO SHARED PREFERENCES
-    // --------------------------------------------------
+// SAVE LISTS TO SHARED PREFERENCES
+// --------------------------------------------------
     public static void saveData(Context context) {
 
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
@@ -479,22 +756,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // --------------------------------------------------
-    // FILTER VISIBLE LISTS
-    // Favorites float to the top, then non-favorites
-    // Order within each group is preserved
-    // --------------------------------------------------
+// FILTER VISIBLE LISTS
+// --------------------------------------------------
     private void refreshVisibleLists() {
 
         visibleLists.clear();
 
-        // First pass — add favorited lists
         for (ShoppingList list : shoppingLists) {
             if (!list.isArchived() && list.isFavorite()) {
                 visibleLists.add(list);
             }
         }
 
-        // Second pass — add non-favorited lists
         for (ShoppingList list : shoppingLists) {
             if (!list.isArchived() && !list.isFavorite()) {
                 visibleLists.add(list);
@@ -505,6 +778,4 @@ public class MainActivity extends AppCompatActivity {
             adapter.notifyDataSetChanged();
         }
     }
-
 }
-
