@@ -27,7 +27,7 @@
             android:id="@+id/itemCheckbox"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@drawable/ic_circle_outline"
+            android:src="@drawable/ic_square_outline"
             android:contentDescription="Toggle item"/>
 
         <TextView

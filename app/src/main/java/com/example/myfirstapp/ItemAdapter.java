@@ -285,15 +285,19 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         holder.itemText.setText(item.getName());
 
         if (item.isChecked()) {
-            holder.itemCheckbox.setImageResource(R.drawable.ic_circle_filled);
+            holder.itemCheckbox.setImageResource(R.drawable.ic_square_filled);
             holder.itemText.setPaintFlags(
                     holder.itemText.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
-            holder.itemText.setAlpha(0.4f);
+            holder.itemText.setAlpha(0.65f);
+            holder.itemText.setTextColor(
+                    ContextCompat.getColor(context, R.color.accent_violet_light));
         } else {
-            holder.itemCheckbox.setImageResource(R.drawable.ic_circle_outline);
+            holder.itemCheckbox.setImageResource(R.drawable.ic_square_outline);
             holder.itemText.setPaintFlags(
                     holder.itemText.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG));
             holder.itemText.setAlpha(1.0f);
+            holder.itemText.setTextColor(
+                    ContextCompat.getColor(context, R.color.text_primary));
         }
 
         holder.itemView.setOnClickListener(v -> {
@@ -646,6 +650,48 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     public boolean isSwipeable(int position) {
         if (position < 0 || position >= flatList.size()) return false;
         return flatList.get(position).kind == Entry.KIND_ITEM;
+    }
+
+    public boolean isDraggable(int position) {
+        if (position < 0 || position >= flatList.size()) return false;
+        return flatList.get(position).kind == Entry.KIND_ITEM;
+    }
+
+    public boolean canDragOver(int fromPosition, int toPosition) {
+        if (fromPosition < 0 || fromPosition >= flatList.size()) return false;
+        if (toPosition < 0 || toPosition >= flatList.size()) return false;
+
+        Entry from = flatList.get(fromPosition);
+        Entry to = flatList.get(toPosition);
+
+        // Can only drag over other item rows
+        if (to.kind != Entry.KIND_ITEM) return false;
+
+        // Must be in the same section
+        return from.section == to.section;
+    }
+
+    public void onItemDragged(int fromPosition, int toPosition) {
+        if (!canDragOver(fromPosition, toPosition)) return;
+
+        Entry fromEntry = flatList.get(fromPosition);
+        Entry toEntry = flatList.get(toPosition);
+
+        ListSection section = fromEntry.section;
+        List<ShoppingItem> items = section.getItems();
+
+        int fromIndex = items.indexOf(fromEntry.item);
+        int toIndex = items.indexOf(toEntry.item);
+
+        if (fromIndex == -1 || toIndex == -1) return;
+
+        // Swap in the underlying section data
+        java.util.Collections.swap(items, fromIndex, toIndex);
+
+        // Swap in the flat list for immediate visual feedback
+        java.util.Collections.swap(flatList, fromPosition, toPosition);
+
+        notifyItemMoved(fromPosition, toPosition);
     }
 
     public static class SwipeDeleteResult {

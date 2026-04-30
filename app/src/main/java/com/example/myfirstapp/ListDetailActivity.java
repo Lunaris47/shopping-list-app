@@ -114,18 +114,44 @@ public class ListDetailActivity extends AppCompatActivity {
         }
 
         // -----------------------------------------------
-        // SWIPE TO DELETE
+        // ITEM TOUCH HELPER
+        // Handles both drag to reorder and swipe to delete
         // -----------------------------------------------
         ItemTouchHelper helper = new ItemTouchHelper(
                 new ItemTouchHelper.SimpleCallback(
-                        0,
+                        // Drag directions — up and down only for a list
+                        ItemTouchHelper.UP | ItemTouchHelper.DOWN,
+                        // Swipe directions
                         ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
 
                     @Override
                     public boolean onMove(@NonNull RecyclerView recyclerView,
                                           @NonNull RecyclerView.ViewHolder viewHolder,
                                           @NonNull RecyclerView.ViewHolder target) {
-                        return false;
+                        int fromPosition = viewHolder.getBindingAdapterPosition();
+                        int toPosition = target.getBindingAdapterPosition();
+
+                        if (!adapter.canDragOver(fromPosition, toPosition)) {
+                            return false;
+                        }
+
+                        adapter.onItemDragged(fromPosition, toPosition);
+                        return true;
+                    }
+
+                    @Override
+                    public void clearView(@NonNull RecyclerView recyclerView,
+                                          @NonNull RecyclerView.ViewHolder viewHolder) {
+                        super.clearView(recyclerView, viewHolder);
+                        // Save after drag is complete
+                        MainActivity.saveData(ListDetailActivity.this);
+                    }
+
+                    @Override
+                    public boolean isLongPressDragEnabled() {
+                        // Long press on item row initiates drag
+                        // Only enabled in edit mode not archived view
+                        return !archivedView;
                     }
 
                     @Override
@@ -134,6 +160,15 @@ public class ListDetailActivity extends AppCompatActivity {
                         int position = viewHolder.getBindingAdapterPosition();
                         if (!adapter.isSwipeable(position)) return 0;
                         return super.getSwipeDirs(recyclerView, viewHolder);
+                    }
+
+                    @Override
+                    public boolean canDropOver(@NonNull RecyclerView recyclerView,
+                                               @NonNull RecyclerView.ViewHolder current,
+                                               @NonNull RecyclerView.ViewHolder target) {
+                        int fromPosition = current.getBindingAdapterPosition();
+                        int toPosition = target.getBindingAdapterPosition();
+                        return adapter.canDragOver(fromPosition, toPosition);
                     }
 
                     @Override
@@ -167,43 +202,47 @@ public class ListDetailActivity extends AppCompatActivity {
                                             int actionState,
                                             boolean isCurrentlyActive) {
 
-                        View itemView = viewHolder.itemView;
-                        Paint paint = new Paint();
-                        paint.setColor(Color.RED);
-
-                        if (dX > 0) {
-                            c.drawRect(itemView.getLeft(),
-                                    itemView.getTop(),
-                                    itemView.getLeft() + dX,
-                                    itemView.getBottom(), paint);
-                        } else {
-                            c.drawRect(itemView.getRight() + dX,
-                                    itemView.getTop(),
-                                    itemView.getRight(),
-                                    itemView.getBottom(), paint);
-                        }
-
-                        Drawable icon = ResourcesCompat.getDrawable(
-                                getResources(), R.drawable.ic_delete, null);
-
-                        if (icon != null) {
-                            int iconMargin = (itemView.getHeight()
-                                    - icon.getIntrinsicHeight()) / 2;
-                            int iconTop = itemView.getTop() + iconMargin;
-                            int iconBottom = iconTop + icon.getIntrinsicHeight();
+                        // Only draw red swipe background for swipe actions
+                        // not for drag actions
+                        if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+                            View itemView = viewHolder.itemView;
+                            Paint paint = new Paint();
+                            paint.setColor(Color.RED);
 
                             if (dX > 0) {
-                                int iconLeft = itemView.getLeft() + iconMargin;
-                                int iconRight = iconLeft + icon.getIntrinsicWidth();
-                                icon.setBounds(iconLeft, iconTop,
-                                        iconRight, iconBottom);
+                                c.drawRect(itemView.getLeft(),
+                                        itemView.getTop(),
+                                        itemView.getLeft() + dX,
+                                        itemView.getBottom(), paint);
                             } else {
-                                int iconRight = itemView.getRight() - iconMargin;
-                                int iconLeft = iconRight - icon.getIntrinsicWidth();
-                                icon.setBounds(iconLeft, iconTop,
-                                        iconRight, iconBottom);
+                                c.drawRect(itemView.getRight() + dX,
+                                        itemView.getTop(),
+                                        itemView.getRight(),
+                                        itemView.getBottom(), paint);
                             }
-                            icon.draw(c);
+
+                            Drawable icon = ResourcesCompat.getDrawable(
+                                    getResources(), R.drawable.ic_delete, null);
+
+                            if (icon != null) {
+                                int iconMargin = (itemView.getHeight()
+                                        - icon.getIntrinsicHeight()) / 2;
+                                int iconTop = itemView.getTop() + iconMargin;
+                                int iconBottom = iconTop + icon.getIntrinsicHeight();
+
+                                if (dX > 0) {
+                                    int iconLeft = itemView.getLeft() + iconMargin;
+                                    int iconRight = iconLeft + icon.getIntrinsicWidth();
+                                    icon.setBounds(iconLeft, iconTop,
+                                            iconRight, iconBottom);
+                                } else {
+                                    int iconRight = itemView.getRight() - iconMargin;
+                                    int iconLeft = iconRight - icon.getIntrinsicWidth();
+                                    icon.setBounds(iconLeft, iconTop,
+                                            iconRight, iconBottom);
+                                }
+                                icon.draw(c);
+                            }
                         }
 
                         super.onChildDraw(c, recyclerView, viewHolder,
