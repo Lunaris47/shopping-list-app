@@ -158,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
 // --------------------------------------------------
     private void showListOptions(ShoppingList selectedList) {
 
-        String[] options = {"Set Recurrence", "Archive List", "Delete List"};
+        String[] options = {"Set Repeat", "Archive List", "Delete List"};
 
         new AlertDialog.Builder(this)
                 .setTitle("List Options")
@@ -507,7 +507,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         new AlertDialog.Builder(this)
-                .setTitle("Set Recurrence")
+                .setTitle("Set Repeat")
                 .setView(layout)
                 .setPositiveButton("Save", (dialog, which) -> {
 
@@ -519,7 +519,7 @@ public class MainActivity extends AppCompatActivity {
                             refreshVisibleLists();
                             saveData(this);
                             Snackbar.make(recyclerView,
-                                    "Recurrence removed",
+                                    "Repeat removed",
                                     Snackbar.LENGTH_SHORT).show();
                             break;
 

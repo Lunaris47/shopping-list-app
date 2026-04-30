@@ -386,8 +386,8 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         holder.itemView.setOnLongClickListener(v -> {
 
             String recurrenceLabel = item.hasRecurrence()
-                    ? "Recurrence: " + getItemRecurrenceDescription(item)
-                    : "Set Recurrence";
+                    ? "Repeat: " + getItemRecurrenceDescription(item)
+                    : "Set Repeat";
 
             String[] options = {"Edit Item", recurrenceLabel, "Remove Item"};
 
@@ -695,7 +695,7 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         });
 
         new AlertDialog.Builder(context)
-                .setTitle("Recurrence for: " + item.getName())
+                .setTitle("Repeat for: " + item.getName())
                 .setView(layout)
                 .setPositiveButton("Save", (dialog, which) -> {
                     switch (state.selectedOption) {
