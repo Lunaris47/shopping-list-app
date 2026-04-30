@@ -684,38 +684,83 @@ public class MainActivity extends AppCompatActivity {
 
         for (ShoppingList list : shoppingLists) {
 
-            if (!list.isArchived()) continue;
-            if (todayDate.equals(list.getLastRestoredDate())) continue;
+            // -----------------------------------------------
+            // LIST-LEVEL RECURRENCE (existing logic)
+            // -----------------------------------------------
+            if (list.isArchived()) {
+                if (!todayDate.equals(list.getLastRestoredDate())) {
 
-            if (list.getRecurringType() == null) {
-                list.setRecurringType("none");
+                    if (list.getRecurringType() == null) {
+                        list.setRecurringType("none");
+                    }
+
+                    switch (list.getRecurringType()) {
+                        case "weekly":
+                            if (todayDay.equalsIgnoreCase(list.getRecurringValue())) {
+                                list.setArchived(false);
+                                list.resetItems();
+                                list.setLastRestoredDate(todayDate);
+                            }
+                            break;
+                        case "monthly":
+                            try {
+                                if (dayOfMonth == Integer.parseInt(list.getRecurringValue())) {
+                                    list.setArchived(false);
+                                    list.resetItems();
+                                    list.setLastRestoredDate(todayDate);
+                                }
+                            } catch (NumberFormatException e) {
+                                // malformed value — skip
+                            }
+                            break;
+                        case "yearly":
+                            if (todayMonthDay.equals(list.getRecurringValue())) {
+                                list.setArchived(false);
+                                list.resetItems();
+                                list.setLastRestoredDate(todayDate);
+                            }
+                            break;
+                    }
+                }
             }
 
-            switch (list.getRecurringType()) {
+            // -----------------------------------------------
+            // ITEM-LEVEL RECURRENCE (new logic)
+            // Only runs on non-archived lists
+            // -----------------------------------------------
+            if (!list.isArchived()) {
+                for (ListSection section : list.getSections()) {
+                    for (ShoppingItem item : section.getItems()) {
 
-                case "weekly":
-                    if (todayDay.equalsIgnoreCase(list.getRecurringValue())) {
-                        list.setArchived(false);
-                        list.resetItems();
-                        list.setLastRestoredDate(todayDate);
-                    }
-                    break;
+                        if (!item.hasRecurrence()) continue;
+                        if (todayDate.equals(item.getLastRestoredDate())) continue;
 
-                case "monthly":
-                    if (dayOfMonth == Integer.parseInt(list.getRecurringValue())) {
-                        list.setArchived(false);
-                        list.resetItems();
-                        list.setLastRestoredDate(todayDate);
+                        switch (item.getRecurringType()) {
+                            case "weekly":
+                                if (todayDay.equalsIgnoreCase(item.getRecurringValue())) {
+                                    item.setChecked(false);
+                                    item.setLastRestoredDate(todayDate);
+                                }
+                                break;
+                            case "monthly":
+                                try {
+                                    if (dayOfMonth == Integer.parseInt(item.getRecurringValue())) {
+                                        item.setChecked(false);
+                                        item.setLastRestoredDate(todayDate);
+                                    }
+                                } catch (NumberFormatException e) {
+                                    // malformed value — skip
+                                }
+                                break;
+                            case "yearly":
+                                if (todayMonthDay.equals(item.getRecurringValue())) {
+                                    item.setChecked(false);
+                                    item.setLastRestoredDate(todayDate);
+                                }
+                                break;
+                        }
                     }
-                    break;
-
-                case "yearly":
-                    if (todayMonthDay.equals(list.getRecurringValue())) {
-                        list.setArchived(false);
-                        list.resetItems();
-                        list.setLastRestoredDate(todayDate);
-                    }
-                    break;
+                }
             }
         }
 
