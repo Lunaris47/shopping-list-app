@@ -61,6 +61,25 @@ public class ListDetailActivity extends AppCompatActivity {
                 () -> MainActivity.saveData(ListDetailActivity.this),
                 (deletedSection, sectionIndex) -> {
                     shoppingList.getSections().remove(deletedSection);
+
+                    // -----------------------------------------------
+                    // If no sections remain at all, restore the
+                    // default section so the list is still usable
+                    // -----------------------------------------------
+                    boolean noSectionsLeft = shoppingList.getSections().isEmpty();
+                    boolean hasNamedSections = shoppingList.getSections()
+                            .stream()
+                            .anyMatch(sec -> !sec.isDefaultSection());
+
+                    if (noSectionsLeft || !hasNamedSections) {
+                        boolean hasDefaultSection = shoppingList.getSections()
+                                .stream()
+                                .anyMatch(ListSection::isDefaultSection);
+                        if (!hasDefaultSection) {
+                            shoppingList.getSections().add(new ListSection(""));
+                        }
+                    }
+
                     adapter.refreshList();
                     MainActivity.saveData(ListDetailActivity.this);
 
@@ -68,6 +87,12 @@ public class ListDetailActivity extends AppCompatActivity {
                                     "Section deleted",
                                     Snackbar.LENGTH_LONG)
                             .setAction("UNDO", v -> {
+
+                                // On undo, remove the restored default
+                                // section if we added one, then re-insert
+                                // the deleted section at its original index
+                                shoppingList.getSections().removeIf(
+                                        ListSection::isDefaultSection);
                                 shoppingList.getSections().add(
                                         sectionIndex, deletedSection);
                                 adapter.refreshList();
@@ -101,6 +126,33 @@ public class ListDetailActivity extends AppCompatActivity {
                             String name = sectionInput.getText()
                                     .toString().trim();
                             if (!name.isEmpty()) {
+
+                                // -----------------------------------------------
+                                // Check if this is the first named section
+                                // being added to the list
+                                // -----------------------------------------------
+                                boolean hasNamedSections = shoppingList.getSections()
+                                        .stream()
+                                        .anyMatch(sec -> !sec.isDefaultSection());
+
+                                if (!hasNamedSections) {
+                                    // This is the first named section being added
+                                    ListSection defaultSection = shoppingList.getSections()
+                                            .stream()
+                                            .filter(ListSection::isDefaultSection)
+                                            .findFirst()
+                                            .orElse(null);
+
+                                    if (defaultSection != null
+                                            && defaultSection.getItems().isEmpty()) {
+                                        // Default section is empty — remove it
+                                        // so "Other" never appears
+                                        shoppingList.getSections().remove(defaultSection);
+                                    }
+                                    // If default section has items, leave it —
+                                    // buildFlatList() will render it as "Other" at the bottom
+                                }
+
                                 shoppingList.addSection(name);
                                 adapter.refreshList();
                                 MainActivity.saveData(ListDetailActivity.this);
@@ -149,9 +201,7 @@ public class ListDetailActivity extends AppCompatActivity {
 
                     @Override
                     public boolean isLongPressDragEnabled() {
-                        // Long press on item row initiates drag
-                        // Only enabled in edit mode not archived view
-                        return !archivedView;
+                        return false; // drag handle takes over
                     }
 
                     @Override
@@ -251,6 +301,7 @@ public class ListDetailActivity extends AppCompatActivity {
                 });
 
         helper.attachToRecyclerView(recyclerView);
+        adapter.setItemTouchHelper(helper);
     }
 
     @Override

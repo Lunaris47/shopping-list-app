@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.graphics.Paint;
 import android.os.Build;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -21,6 +22,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.ItemTouchHelper;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -85,6 +87,11 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final String listName;
     private final Runnable onItemChanged;
     private final boolean isReadOnly;
+    private ItemTouchHelper itemTouchHelper;
+
+    public void setItemTouchHelper(ItemTouchHelper helper) {
+        this.itemTouchHelper = helper;
+    }
 
     public interface OnSectionDeletedListener {
         void onSectionDeleted(ListSection section, int sectionIndex);
@@ -110,34 +117,64 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 // -----------------------------------------------
     private List<Entry> buildFlatList() {
         List<Entry> list = new ArrayList<>();
+
+        boolean hasNamedSections = sections.stream()
+                .anyMatch(sec -> !sec.isDefaultSection());
+
+        // -----------------------------------------------
+        // Named sections first, in their original order
+        // -----------------------------------------------
         for (int s = 0; s < sections.size(); s++) {
             ListSection section = sections.get(s);
+            if (section.isDefaultSection()) continue;
 
-            // Show header only for named sections
-            if (!section.isDefaultSection()) {
-                list.add(Entry.header(section, s));
-            }
+            list.add(Entry.header(section, s));
 
-            // Unchecked items first
             List<ShoppingItem> items = section.getItems();
             for (int i = 0; i < items.size(); i++) {
                 if (!items.get(i).isChecked()) {
                     list.add(Entry.item(items.get(i), section, s, i));
                 }
             }
-
-            // Checked items after
             for (int i = 0; i < items.size(); i++) {
                 if (items.get(i).isChecked()) {
                     list.add(Entry.item(items.get(i), section, s, i));
                 }
             }
-
-            // Footer — tap to add item — only shown in edit mode
             if (!isReadOnly) {
                 list.add(Entry.footer(section, s));
             }
         }
+
+        // -----------------------------------------------
+        // Default section always last
+        // Only shows header if named sections exist
+        // Header displays as "Other" in bindSectionHeader
+        // -----------------------------------------------
+        for (int s = 0; s < sections.size(); s++) {
+            ListSection section = sections.get(s);
+            if (!section.isDefaultSection()) continue;
+
+            if (hasNamedSections) {
+                list.add(Entry.header(section, s));
+            }
+
+            List<ShoppingItem> items = section.getItems();
+            for (int i = 0; i < items.size(); i++) {
+                if (!items.get(i).isChecked()) {
+                    list.add(Entry.item(items.get(i), section, s, i));
+                }
+            }
+            for (int i = 0; i < items.size(); i++) {
+                if (items.get(i).isChecked()) {
+                    list.add(Entry.item(items.get(i), section, s, i));
+                }
+            }
+            if (!isReadOnly) {
+                list.add(Entry.footer(section, s));
+            }
+        }
+
         return list;
     }
 
@@ -193,7 +230,15 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 // -----------------------------------------------
     private void bindSectionHeader(SectionViewHolder holder, Entry entry) {
         ListSection section = entry.section;
-        holder.sectionTitle.setText(section.getTitle());
+
+        boolean hasNamedSections = sections.stream()
+                .anyMatch(sec -> !sec.isDefaultSection());
+
+        String displayTitle = section.isDefaultSection() && hasNamedSections
+                ? "Other"
+                : section.getTitle();
+
+        holder.sectionTitle.setText(displayTitle);
 
         holder.sectionTitle.setOnLongClickListener(v -> {
             Context context = v.getContext();
@@ -374,6 +419,21 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
             return true;
         });
+
+        // Drag handle
+        if (isReadOnly) {
+            holder.itemDragHandle.setVisibility(View.GONE);
+        } else {
+            holder.itemDragHandle.setVisibility(View.VISIBLE);
+            holder.itemDragHandle.setOnTouchListener((v, event) -> {
+                if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                    if (itemTouchHelper != null) {
+                        itemTouchHelper.startDrag(holder);
+                    }
+                }
+                return false;
+            });
+        }
     }
 
     // -----------------------------------------------
@@ -1070,6 +1130,7 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         TextView itemText;
         ImageView itemCheckbox;
         ImageButton reminderButton;
+        ImageView itemDragHandle;
 
         ItemViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -1077,6 +1138,7 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             itemCheckbox = itemView.findViewById(R.id.itemCheckbox);
             divider = itemView.findViewById(R.id.completedDivider);
             reminderButton = itemView.findViewById(R.id.reminderButton);
+            itemDragHandle = itemView.findViewById(R.id.itemDragHandle);
         }
     }
 }

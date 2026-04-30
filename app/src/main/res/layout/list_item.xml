@@ -49,6 +49,15 @@
             app:tint="@color/text_secondary"
             android:layout_marginStart="8dp"/>
 
+        <ImageView
+            android:id="@+id/itemDragHandle"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_drag_handle"
+            android:contentDescription="Drag to reorder"
+            app:tint="@color/text_secondary"
+            android:layout_marginStart="4dp"/>
+
     </LinearLayout>
 
     <View
