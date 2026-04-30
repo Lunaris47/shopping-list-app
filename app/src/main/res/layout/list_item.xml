@@ -40,6 +40,17 @@
             android:paddingStart="8dp"/>
 
         <ImageButton
+            android:id="@+id/repeatButton"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Item recurrence"
+            android:src="@drawable/ic_repeat"
+            app:tint="@color/accent_violet"
+            android:layout_marginStart="8dp"
+            android:visibility="gone"/>
+
+        <ImageButton
             android:id="@+id/reminderButton"
             android:layout_width="32dp"
             android:layout_height="32dp"

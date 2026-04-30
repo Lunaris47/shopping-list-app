@@ -370,6 +370,18 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             }
         });
 
+        // Repeat button
+        if (item.hasRecurrence()) {
+            holder.repeatButton.setVisibility(View.VISIBLE);
+            holder.repeatButton.setColorFilter(
+                    ContextCompat.getColor(context, R.color.accent_violet));
+            holder.repeatButton.setOnClickListener(v ->
+                    showItemRecurrenceDialog(context, item));
+        } else {
+            holder.repeatButton.setVisibility(View.GONE);
+            holder.repeatButton.setOnClickListener(null);
+        }
+
         // Long press — options menu
         holder.itemView.setOnLongClickListener(v -> {
 
@@ -1130,6 +1142,7 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         TextView itemText;
         ImageView itemCheckbox;
         ImageButton reminderButton;
+        ImageButton repeatButton;
         ImageView itemDragHandle;
 
         ItemViewHolder(@NonNull View itemView) {
@@ -1138,6 +1151,7 @@ public class ItemAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             itemCheckbox = itemView.findViewById(R.id.itemCheckbox);
             divider = itemView.findViewById(R.id.completedDivider);
             reminderButton = itemView.findViewById(R.id.reminderButton);
+            repeatButton = itemView.findViewById(R.id.repeatButton);
             itemDragHandle = itemView.findViewById(R.id.itemDragHandle);
         }
     }
