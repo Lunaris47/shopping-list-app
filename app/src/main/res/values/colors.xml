@@ -1,37 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- ===================== -->
-    <!-- LISTKEEPR DARK THEME  -->
-    <!-- ===================== -->
+    <!-- Raw color palette -->
+    <color name="background_light">#F5F5F5</color>
+    <color name="surface_light">#FFFFFF</color>
+    <color name="card_light">#FFFFFF</color>
+    <color name="card_favorite_light">#FFF8E1</color>
+    <color name="divider_light">#E0E0E0</color>
+    <color name="text_primary_light">#1A1A2E</color>
+    <color name="text_secondary_light">#666680</color>
 
-    <!-- Backgrounds -->
-    <color name="background_dark">#1E1E2E</color>
-    <color name="surface_dark">#2A2A3D</color>
-    <color name="card_dark">#2E2E42</color>
+    <color name="background_dark_raw">#1E1E2E</color>
+    <color name="surface_dark_raw">#2A2A3D</color>
+    <color name="card_dark_raw">#2E2E42</color>
+    <color name="card_favorite_raw">#3A3355</color>
+    <color name="text_primary_dark">#E8E8F0</color>
+    <color name="text_secondary_dark">#9999AA</color>
+    <color name="divider_dark_raw">#3A3A50</color>
 
-    <!-- Favorite card — warm violet tinted surface -->
-    <color name="card_favorite">#3A3355</color>
-
-    <!-- Accent -->
+    <!-- Accent colors (same in both modes) -->
     <color name="accent_violet">#A78BFA</color>
     <color name="accent_violet_light">#C4B5FD</color>
-
-    <!-- Star / Favorite accent -->
     <color name="accent_gold">#FBBF24</color>
-
-    <!-- Text -->
-    <color name="text_primary">#E8E8F0</color>
-    <color name="text_secondary">#9999AA</color>
-
-    <!-- Divider -->
-    <color name="divider_dark">#3A3A50</color>
-
-    <!-- Checkbox / Checked accent -->
     <color name="accent_green">#6EE7B7</color>
 
-    <!-- Legacy colors (kept for safety) -->
+    <!-- Legacy -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- =============================================-->
+    <!-- SEMANTIC COLORS — light mode values (day)   -->
+    <!-- values-night/colors.xml overrides for dark  -->
+    <!-- =============================================-->
+    <color name="background_dark">@color/background_light</color>
+    <color name="surface_dark">@color/surface_light</color>
+    <color name="card_dark">@color/card_light</color>
+    <color name="card_favorite">@color/card_favorite_light</color>
+    <color name="divider_dark">@color/divider_light</color>
+    <color name="text_primary">@color/text_primary_light</color>
+    <color name="text_secondary">@color/text_secondary_light</color>
 
 </resources>

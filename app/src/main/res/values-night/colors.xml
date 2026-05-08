@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- SEMANTIC COLORS — dark mode values (night) -->
+    <color name="background_dark">#1E1E2E</color>
+    <color name="surface_dark">#2A2A3D</color>
+    <color name="card_dark">#2E2E42</color>
+    <color name="card_favorite">#3A3355</color>
+    <color name="divider_dark">#3A3A50</color>
+    <color name="text_primary">#E8E8F0</color>
+    <color name="text_secondary">#9999AA</color>
+
+</resources>

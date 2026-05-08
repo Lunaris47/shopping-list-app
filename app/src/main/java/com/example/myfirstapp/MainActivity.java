@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatDelegate;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
@@ -32,9 +33,11 @@ public class MainActivity extends AppCompatActivity {
     private static final String PREFS_NAME = "shopping_prefs";
     private static final String LIST_KEY = "shopping_lists";
     private static final Gson gson = new Gson();
+    private static final String THEME_KEY = "app_theme";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        applyTheme();
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
@@ -154,8 +157,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // --------------------------------------------------
-// LONG PRESS MENU
-// --------------------------------------------------
+    // LONG PRESS MENU
+    // --------------------------------------------------
     private void showListOptions(ShoppingList selectedList) {
 
         String[] options = {"Set Repeat", "Archive List", "Delete List"};
@@ -176,8 +179,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // --------------------------------------------------
-// SET RECURRENCE
-// --------------------------------------------------
+    // SET RECURRENCE
+    // --------------------------------------------------
     private void showRecurrenceDialog(ShoppingList selectedList) {
 
         class RecurrenceState {
@@ -586,8 +589,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // --------------------------------------------------
-// ARCHIVE LIST
-// --------------------------------------------------
+    // ARCHIVE LIST
+    // --------------------------------------------------
     private void archiveList(ShoppingList selectedList) {
 
         selectedList.setArchived(true);
@@ -604,8 +607,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // --------------------------------------------------
-// DELETE LIST
-// --------------------------------------------------
+    // DELETE LIST
+    // --------------------------------------------------
     private void deleteList(ShoppingList selectedList) {
 
         shoppingLists.remove(selectedList);
@@ -622,8 +625,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // --------------------------------------------------
-// RETURNS HUMAN-READABLE CURRENT RECURRENCE STATE
-// --------------------------------------------------
+    // RETURNS HUMAN-READABLE CURRENT RECURRENCE STATE
+    // --------------------------------------------------
     private String getCurrentRecurrenceDescription(ShoppingList list) {
 
         if (list.getRecurringType() == null) return "None";
@@ -652,6 +655,20 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new Intent(this, ArchivedListsActivity.class));
             return true;
         }
+
+        if (item.getItemId() == R.id.menu_toggle_theme) {
+            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+            int current = prefs.getInt(THEME_KEY, AppCompatDelegate.MODE_NIGHT_YES);
+
+            int newMode = (current == AppCompatDelegate.MODE_NIGHT_YES)
+                    ? AppCompatDelegate.MODE_NIGHT_NO
+                    : AppCompatDelegate.MODE_NIGHT_YES;
+
+            prefs.edit().putInt(THEME_KEY, newMode).apply();
+            AppCompatDelegate.setDefaultNightMode(newMode);
+            return true;
+        }
+
         return super.onOptionsItemSelected(item);
     }
 
@@ -662,8 +679,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // --------------------------------------------------
-// CHECK RECURRING LISTS
-// --------------------------------------------------
+    // APPLY SAVED THEME
+    // --------------------------------------------------
+    private void applyTheme() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        int mode = prefs.getInt(THEME_KEY, AppCompatDelegate.MODE_NIGHT_YES);
+        AppCompatDelegate.setDefaultNightMode(mode);
+    }
+
+    // --------------------------------------------------
+    // CHECK RECURRING LISTS
+    // --------------------------------------------------
     private void checkRecurringLists() {
 
         java.util.Calendar calendar = java.util.Calendar.getInstance();
