@@ -646,6 +646,17 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(android.view.Menu menu) {
         getMenuInflater().inflate(R.menu.main_menu, menu);
+
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        int current = prefs.getInt(THEME_KEY, AppCompatDelegate.MODE_NIGHT_YES);
+
+        android.view.MenuItem themeItem = menu.findItem(R.id.menu_toggle_theme);
+        if (current == AppCompatDelegate.MODE_NIGHT_YES) {
+            themeItem.setTitle(getString(R.string.light_theme));
+        } else {
+            themeItem.setTitle(getString(R.string.dark_theme));
+        }
+
         return true;
     }
 

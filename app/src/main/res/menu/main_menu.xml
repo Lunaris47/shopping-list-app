@@ -9,7 +9,7 @@
 
     <item
         android:id="@+id/menu_toggle_theme"
-        android:title="@string/switch_theme"
+        android:title="@string/light_theme"
         app:showAsAction="never" />
 
 </menu>
